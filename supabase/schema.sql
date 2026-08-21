@@ -44,7 +44,8 @@ create index if not exists point_events_recent_idx on public.point_events (event
 -- Explicit grants are intentional. New Supabase projects may not expose
 -- newly-created public tables to the Data API automatically.
 grant usage on schema public to anon, authenticated;
-grant select on public.players to anon, authenticated;
+revoke all on public.players from anon;
+grant select on public.players to authenticated;
 grant select on public.point_events to authenticated;
 grant select on public.admin_profiles to authenticated;
 
@@ -71,9 +72,10 @@ revoke all on function public.is_admin() from public;
 grant execute on function public.is_admin() to authenticated;
 
 drop policy if exists "public can see active players" on public.players;
-create policy "public can see active players"
+drop policy if exists "authenticated users can see active players" on public.players;
+create policy "authenticated users can see active players"
   on public.players for select
-  to anon, authenticated
+  to authenticated
   using (active = true);
 
 drop policy if exists "admins can see event ledger" on public.point_events;
