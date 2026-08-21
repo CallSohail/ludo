@@ -57,7 +57,7 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = public, pg_temp
+set search_path = extensions, public, pg_temp
 as $$
   select exists (
     select 1
@@ -96,7 +96,7 @@ create or replace function public.admin_create_player(
 returns public.players
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = extensions, public, pg_temp
 as $$
 declare
   v_player public.players;
@@ -133,7 +133,7 @@ create or replace function public.add_point_event(
 returns public.point_events
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = extensions, public, pg_temp
 as $$
 declare
   v_event public.point_events;
