@@ -206,7 +206,7 @@ function LoginPanel({ onLogin, busy, error }) {
   );
 }
 
-function AdminPanel({ onClose, players, events, adminUser, onRefresh, onBurst, onLogout }) {
+function AdminPanel({ onClose, players, events, adminUser, onLogin, onRefresh, onBurst, onLogout }) {
   const [loginBusy, setLoginBusy] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [playerForm, setPlayerForm] = useState(initialPlayerForm);
