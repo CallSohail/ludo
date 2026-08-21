@@ -1,10 +1,10 @@
 # Ludo Super League, Evry 2026
 
-A playful, live leaderboard for your Ludo nights. The public page is open to everyone. The scorekeeper deck is protected by Supabase Auth and every point is stored as a signed, hash-linked event.
+A playful, live leaderboard for your Ludo nights. The whole site and the scorekeeper deck are protected by Supabase Auth, and every point is stored as a signed, hash-linked event.
 
 ## What is included
 
-- Responsive public leaderboard with a top-three podium, medals, badges, progress bars, live time, and animated fireworks.
+- Private leaderboard with a full-site login gate, top-three podium, medals, badges, progress bars, live time, and animated fireworks.
 - Admin panel for adding players and awarding 1 to 9 points.
 - Consent checkbox before every point is published.
 - Hash-linked point ledger, each event records the previous hash, current time, admin identity, reason, and points.
@@ -33,8 +33,13 @@ Demo data is stored only in the current browser. Do not use demo mode for the pu
 
 1. Create a Supabase project.
 2. Open the SQL Editor and run [`supabase/schema.sql`](./supabase/schema.sql).
-3. Create one Auth user in Supabase Dashboard, using the email and password you want for the scorekeeper.
-4. Add that Auth user to the admin allow-list. Replace the email in this query:
+3. Create the shared viewer in **Authentication → Users → Add user**:
+   - Email: `sohail.cs951+ludoguys@gmail.com`
+   - Password: set the shared password privately in Supabase
+   - Enable auto-confirm when the dashboard offers it
+4. The site maps the public username `ludoguys` to that internal Auth email. Never put the shared password in this repository.
+5. Create a separate Auth user for the scorekeeper, using the email and password you want for the admin deck.
+6. Add the scorekeeper to the admin allow-list. Replace the email in this query:
 
 ```sql
 insert into public.admin_profiles (user_id, display_name, is_admin)
@@ -45,7 +50,7 @@ on conflict (user_id) do update
 set is_admin = true, display_name = excluded.display_name;
 ```
 
-5. Copy your project URL and publishable key into `.env`:
+7. Copy your project URL and publishable key into `.env`:
 
 ```text
 VITE_SUPABASE_URL=https://your-project-ref.supabase.co
