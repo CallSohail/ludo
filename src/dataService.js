@@ -1,4 +1,4 @@
-import { isSupabaseConfigured } from './config';
+import { config, isSupabaseConfigured } from './config';
 import { supabase } from './supabase';
 
 const PLAYERS_KEY = 'ludo-super-league:players';
@@ -145,6 +145,33 @@ export async function addPoints({ playerId, points, reason, consent }) {
   return Array.isArray(data) ? data[0] : data;
 }
 
+export async function signInSite(username, password) {
+  if (!isSupabaseConfigured) {
+    throw new Error('Site access is not configured. Add the Supabase values and redeploy.');
+  }
+  if (username.trim().toLowerCase() !== config.siteUsername.toLowerCase()) {
+    throw new Error('Username or password is incorrect.');
+  }
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: config.siteAuthEmail,
+    password,
+  });
+  if (error || !data.user) throw new Error('Username or password is incorrect.');
+  return { user: data.user };
+}
+
+export async function getAdminProfile(userId) {
+  if (!isSupabaseConfigured || !userId) return null;
+  const { data, error } = await supabase
+    .from('admin_profiles')
+    .select('user_id,display_name,is_admin')
+    .eq('user_id', userId)
+    .eq('is_admin', true)
+    .maybeSingle();
+  if (error) throw error;
+  return data || null;
+}
+
 export async function signIn(username, password) {
   if (!isSupabaseConfigured) {
     if (username.trim() !== (import.meta.env.VITE_DEMO_ADMIN_USERNAME || 'admin') || password !== (import.meta.env.VITE_DEMO_ADMIN_PASSWORD || 'ludo2026')) {
@@ -154,13 +181,7 @@ export async function signIn(username, password) {
   }
   const { data, error } = await supabase.auth.signInWithPassword({ email: username.trim(), password });
   if (error) throw error;
-  const { data: profile, error: profileError } = await supabase
-    .from('admin_profiles')
-    .select('user_id,display_name,is_admin')
-    .eq('user_id', data.user.id)
-    .eq('is_admin', true)
-    .maybeSingle();
-  if (profileError) throw profileError;
+  const profile = await getAdminProfile(data.user.id);
   if (!profile) {
     await supabase.auth.signOut();
     throw new Error('Login worked, but this account is not on the admin list yet.');
