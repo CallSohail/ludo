@@ -5,8 +5,10 @@ import {
   createPlayer,
   fetchEvents,
   fetchPlayers,
+  getAdminProfile,
   getCurrentSession,
   signIn,
+  signInSite,
   signOut,
   watchForAuth,
   watchForChanges,
@@ -60,7 +62,7 @@ function Fireworks({ burstKey }) {
   );
 }
 
-function Header({ onOpenAdmin, adminUser }) {
+function Header({ onOpenAdmin, onSiteLogout, adminUser }) {
   return (
     <header className="site-header">
       <a className="brand" href="#top" aria-label="Ludo Super League home">
@@ -75,6 +77,7 @@ function Header({ onOpenAdmin, adminUser }) {
         <button className="admin-trigger" onClick={onOpenAdmin} type="button">
           <span>{adminUser ? '⚙️ Admin deck' : '🔐 Admin deck'}</span>
         </button>
+        <button className="site-logout" onClick={onSiteLogout} type="button">Log out</button>
       </div>
     </header>
   );
@@ -185,6 +188,33 @@ function Footer({ onOpenAdmin, eventCount }) {
   );
 }
 
+function SiteAccessGate({ onLogin, busy, error }) {
+  const [form, setForm] = useState({ username: '', password: '' });
+  const submit = (event) => { event.preventDefault(); onLogin(form); };
+  return (
+    <main className="access-shell">
+      <section className="access-card" aria-labelledby="access-title">
+        <div className="access-die">⚄</div>
+        <p className="eyebrow">Private Ludo table</p>
+        <h1 id="access-title">Players only.<br /><em>Dice may enter.</em></h1>
+        <p className="access-copy">This leaderboard is invitation-only. Enter the shared table credentials to see the scores.</p>
+        <form className="access-form" onSubmit={submit}>
+          <label>Username<input autoComplete="username" value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} placeholder="Enter your table username" required /></label>
+          <label>Password<input autoComplete="current-password" type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} placeholder="Enter your table password" required /></label>
+          {error && <div className="form-error" role="alert">{error}</div>}
+          <button className="primary-button full-width" disabled={busy} type="submit">{busy ? 'Checking the guest list...' : 'Enter the Ludo table'} <span>↗</span></button>
+        </form>
+        <p className="access-note">Protected by Supabase Auth. The password is never stored in this website's code.</p>
+      </section>
+      <div className="access-sticker">No strangers<br />near the dice</div>
+    </main>
+  );
+}
+
+function AccessLoading() {
+  return <main className="access-shell"><section className="access-card access-loading"><span className="spinner" /><p>Checking the guest list...</p></section></main>;
+}
+
 function LoginPanel({ onLogin, busy, error }) {
   const [form, setForm] = useState({ username: '', password: '', remembered: true });
   const submit = (event) => { event.preventDefault(); onLogin(form); };
@@ -288,6 +318,10 @@ export default function App() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [authReady, setAuthReady] = useState(false);
+  const [siteUser, setSiteUser] = useState(null);
+  const [siteLoginBusy, setSiteLoginBusy] = useState(false);
+  const [siteLoginError, setSiteLoginError] = useState('');
   const [adminOpen, setAdminOpen] = useState(false);
   const [adminUser, setAdminUser] = useState(null);
   const [burstKey, setBurstKey] = useState(0);
@@ -301,19 +335,71 @@ export default function App() {
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { refresh(); const timer = setInterval(() => setClock(new Date()), 1000); return () => clearInterval(timer); }, [refresh]);
-  useEffect(() => watchForChanges(() => { refresh(); setBurstKey((key) => key + 1); }), [refresh]);
-  useEffect(() => { getCurrentSession().then((session) => { if (session?.user) setAdminUser(session.user); }); return watchForAuth((session) => setAdminUser(session?.user || null)); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    const applySession = (session) => {
+      if (cancelled) return;
+      const user = session?.user || null;
+      setSiteUser(user);
+      setAdminUser(null);
+      setAuthReady(true);
+      if (!user) {
+        setAdminOpen(false);
+        return;
+      }
+      getAdminProfile(user.id)
+        .then((profile) => { if (!cancelled && profile) setAdminUser(user); })
+        .catch(() => {});
+    };
+    getCurrentSession().then(applySession).catch(() => setAuthReady(true));
+    const stopWatching = watchForAuth(applySession);
+    return () => { cancelled = true; stopWatching(); };
+  }, []);
 
-  const handleLogin = async ({ username, password }) => { const result = await signIn(username, password); setAdminUser(result.user); await refresh(); };
-  const handleLogout = async () => { await signOut(); setAdminUser(null); };
+  useEffect(() => {
+    if (!siteUser) {
+      setPlayers([]); setEvents([]); setLoading(false);
+      return undefined;
+    }
+    setLoading(true); refresh();
+    const timer = setInterval(() => setClock(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, [refresh, siteUser]);
+
+  useEffect(() => {
+    if (!siteUser) return undefined;
+    return watchForChanges(() => { refresh(); setBurstKey((key) => key + 1); });
+  }, [refresh, siteUser]);
+
+  const handleSiteLogin = async ({ username, password }) => {
+    setSiteLoginBusy(true); setSiteLoginError('');
+    try {
+      const result = await signInSite(username, password);
+      setSiteUser(result.user); setLoading(true);
+      await refresh();
+    } catch (loginError) {
+      setSiteLoginError(loginError.message || 'Could not open the Ludo table.');
+    } finally { setSiteLoginBusy(false); }
+  };
+  const handleLogin = async ({ username, password }) => {
+    const result = await signIn(username, password);
+    setSiteUser(result.user); setAdminUser(result.user);
+    await refresh();
+  };
+  const handleLogout = async () => {
+    await signOut();
+    setSiteUser(null); setAdminUser(null); setAdminOpen(false);
+  };
   const openAdmin = () => setAdminOpen(true);
   const leader = players[0];
+
+  if (!authReady) return <AccessLoading />;
+  if (!siteUser) return <SiteAccessGate onLogin={handleSiteLogin} busy={siteLoginBusy} error={siteLoginError} />;
 
   return (
     <div className="app-shell">
       <Fireworks burstKey={burstKey} />
-      <Header onOpenAdmin={openAdmin} adminUser={adminUser} />
+      <Header onOpenAdmin={openAdmin} onSiteLogout={handleLogout} adminUser={adminUser} />
       <main>
         <Hero players={players} onOpenAdmin={openAdmin} />
         <section className="ticker" aria-label="League status"><span className="ticker-label">NEWS FLASH</span><span className="ticker-copy">{leader ? `${leader.name} is currently holding the crown with ${leader.points_total} point${leader.points_total === 1 ? '' : 's'}.` : 'The dice are warming up. The first point is still available.'}</span><span className="ticker-time">{clock.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span></section>

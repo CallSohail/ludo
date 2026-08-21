@@ -1,6 +1,9 @@
 export const config = {
   supabaseUrl: import.meta.env.VITE_SUPABASE_URL || '',
   supabaseKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '',
+  siteUsername: import.meta.env.VITE_SITE_USERNAME || 'ludoguys',
+  siteAuthEmail:
+    import.meta.env.VITE_SITE_AUTH_EMAIL || 'sohail.cs951+ludoguys@gmail.com',
   sohailFontUrl:
     import.meta.env.VITE_SOHAIL_FONT_URL ||
     'https://cdn.jsdelivr.net/gh/YOUR-USERNAME/sohail-hand@v1.0/SohailHand-Regular.woff2',
