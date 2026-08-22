@@ -119,6 +119,27 @@ h1 em::after, h2 em::after { content: ''; position: absolute; height: 8px; left:
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
 
+/* Complete league management and performance pass */
+.leaderboard-section, .site-footer { content-visibility: auto; contain-intrinsic-size: 900px; }
+.player-row { contain: layout paint; }
+.podium-avatar { overflow: visible; }.podium-avatar > span { animation: emoji-bob 2.8s ease-in-out infinite; }.podium-avatar > b { position: absolute; right: -11px; bottom: -8px; display: grid; place-items: center; width: 34px; height: 34px; border: 2px solid var(--ink); border-radius: 50%; background: white; font-size: 18px; box-shadow: 2px 3px 0 var(--ink); animation: reaction-pop 2.4s ease-in-out infinite; }
+.podium-1 { outline: 5px solid rgba(255,91,61,.16); }.podium-1 .podium-avatar { animation: leader-wobble 2.2s ease-in-out infinite; }
+.row-reaction { font-size: 25px; transform-origin: center; animation: reaction-pop 3s ease-in-out infinite; }.reaction-crying { filter: saturate(1.15); }.reaction-angry { animation-delay: .25s; }.reaction-neutral { animation-delay: .5s; }.reaction-happy { animation-delay: .75s; }
+.sparkline { display: block; width: 100%; height: 36px; overflow: visible; }.sparkline path { stroke: #ddd8e8; stroke-width: 1; fill: none; }.sparkline polyline { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }.sparkline circle { vector-effect: non-scaling-stroke; }
+.points-number-input { min-height: 52px; font-family: 'Baloo 2'; font-size: 24px !important; font-weight: 800; text-align: center; }.point-picker.compact { margin: 8px 0 16px; }.point-picker.compact button { width: auto; min-width: 42px; padding: 0 9px; }
+.manage-card { background: #f7fff9; }.manage-list { display: grid; gap: 8px; max-height: 260px; overflow: auto; padding-right: 3px; }.manage-player { display: grid; grid-template-columns: 38px minmax(0,1fr) max-content max-content; align-items: center; gap: 9px; padding: 9px; border: 1px solid var(--line); border-radius: 11px; background: white; }.manage-player > span { display: grid; place-items: center; width: 36px; height: 36px; border: 2px solid var(--ink); border-radius: 10px; background: var(--accent); }.manage-player strong, .manage-player small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.manage-player strong { font-family: 'Baloo 2'; font-size: 15px; }.manage-player small { color: #8a8799; font-size: 8px; }.manage-player button { border: 0; background: transparent; color: var(--blue); font-size: 9px; font-weight: 800; }.manage-player .danger-link { color: #bd3429; }
+.edit-player-form, .correction-form { display: grid; gap: 10px; margin-top: 14px; padding: 14px; border: 1px solid var(--ink); border-radius: 12px; background: white; }.edit-player-form > strong, .correction-form > strong { font-family: 'Baloo 2'; font-size: 18px; }.correction-form p { margin: -6px 0 2px; color: #77748d; font-size: 9px; line-height: 1.45; }.correction-form input, .correction-form select { width: 100%; min-height: 42px; border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; }.form-actions { display: flex; justify-content: flex-end; gap: 9px; }.form-actions > button:first-child { border: 0; background: transparent; font-size: 10px; font-weight: 800; }
+@keyframes emoji-bob { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-5px) rotate(3deg); } }
+@keyframes reaction-pop { 0%,100% { transform: scale(1) rotate(0); } 50% { transform: scale(1.13) rotate(5deg); } }
+@keyframes leader-wobble { 0%,100% { transform: rotate(-4deg); } 50% { transform: rotate(2deg) translateY(-3px); } }
+
+@media (max-width: 850px) {
+  .player-row { grid-template-columns: 48px 48px minmax(120px,1fr) minmax(120px,.8fr) 62px 36px; gap: 10px; }.admin-modal { width: min(720px,100%); }
+}
+@media (max-width: 610px) {
+  html { scroll-padding-top: 82px; }.hero-art { transform: scale(.96); }.snapshot { gap: 9px; }.podium { overflow-x: auto; padding: 28px 3px 12px; scroll-snap-type: x mandatory; }.podium-card { min-width: 112px; scroll-snap-align: center; }.player-row { grid-template-columns: 31px 38px minmax(0,1fr) 48px 30px; }.row-progress { display: none; }.manage-player { grid-template-columns: 35px minmax(0,1fr) max-content; }.manage-player .danger-link { grid-column: 3; }.edit-player-form .mini-fields { grid-template-columns: 1fr; }.point-picker.compact { display: flex; }.point-picker.compact button { min-width: 42px; }.admin-forms { gap: 14px; }
+}
+
 /* 2026 premium scoreboard refresh */
 :root { --mint: #63e6be; --blue: #5375e8; --surface: rgba(255,255,255,.72); }
 body { background: var(--ink); }
