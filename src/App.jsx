@@ -2,13 +2,18 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { config, emojis, isSupabaseConfigured, palette, recognition } from './config';
 import {
   addPoints,
+  adjustScore,
+  archivePlayer,
   createPlayer,
   fetchEvents,
   fetchPlayers,
+  fetchScoreHistory,
+  getCachedLeaderboard,
   getAdminProfile,
   getCurrentSession,
   signIn,
   signOut,
+  updatePlayer,
   watchForAuth,
   watchForChanges,
 } from './dataService';
@@ -39,6 +44,23 @@ function getBadge(index, points) {
   if (index < 3) return recognition[index];
   if (points >= 8) return recognition[3];
   return recognition[index % recognition.length];
+}
+
+function getRankReaction(index, total) {
+  const progress = total <= 1 ? 0 : index / (total - 1);
+  if (index === 0) return { face: '😭', label: 'Maximum suffering', tone: 'crying' };
+  if (progress < .3) return { face: '😤', label: 'Deeply concerned', tone: 'angry' };
+  if (progress < .65) return { face: '😐', label: 'Processing events', tone: 'neutral' };
+  return { face: '😌', label: 'Living peacefully', tone: 'happy' };
+}
+
+function PlayerSparkline({ playerId, history, accent }) {
+  const moves = history.filter((event) => event.player_id === playerId).sort((a, b) => Number(a.event_number) - Number(b.event_number));
+  let total = 0;
+  const values = [0, ...moves.map((event) => (total = Math.max(0, total + Number(event.points || 0))))].slice(-12);
+  const max = Math.max(1, ...values);
+  const points = values.map((value, index) => `${(index / Math.max(1, values.length - 1)) * 100},${32 - (value / max) * 28}`).join(' ');
+  return <svg className="sparkline" viewBox="0 0 100 36" role="img" aria-label={`${moves.length} recorded score moves`} preserveAspectRatio="none"><path d="M0 32 H100" /><polyline points={points} style={{ stroke: accent }} /><circle cx="100" cy={32 - (values.at(-1) / max) * 28} r="2.6" style={{ fill: accent }} /></svg>;
 }
 
 function Fireworks({ burstKey }) {
@@ -130,7 +152,6 @@ function LeagueSnapshot({ players, events }) {
 }
 
 function Podium({ players }) {
-  const podiumPlayers = [players[1], players[0], players[2]].filter(Boolean);
   const slots = [1, 0, 2];
   return (
     <div className="podium" aria-label="Top three players">
@@ -138,10 +159,11 @@ function Podium({ players }) {
         const player = players[index];
         if (!player) return <div className={`podium-card empty podium-${index + 1}`} key={`empty-${index}`}><span>?</span><small>waiting for<br />a challenger</small></div>;
         const badge = getBadge(index, player.points_total);
+        const reaction = getRankReaction(index, players.length);
         return (
           <article className={`podium-card podium-${index + 1}`} key={player.id}>
             <div className="podium-rank">{index === 0 ? '01' : index === 1 ? '02' : '03'}</div>
-            <div className="podium-avatar" style={{ '--accent': player.accent }}>{player.emoji}</div>
+            <div className={`podium-avatar reaction-${reaction.tone}`} style={{ '--accent': player.accent }}><span>{player.emoji}</span><b>{reaction.face}</b></div>
             <div className="podium-medal">{badge.icon}</div>
             <h3 title={player.name}>{player.name}</h3>
             <span className="badge-label">{badge.label}</span>
@@ -154,22 +176,23 @@ function Podium({ players }) {
   );
 }
 
-function PlayerRow({ player, index, leaderPoints }) {
+function PlayerRow({ player, index, leaderPoints, history, totalPlayers }) {
   const badge = getBadge(index, player.points_total);
+  const reaction = getRankReaction(index, totalPlayers);
   const progress = leaderPoints > 0 ? Math.round((Number(player.points_total || 0) / leaderPoints) * 100) : 0;
   return (
     <article className={`player-row ${index < 3 ? 'top-row' : ''}`}>
       <div className="row-rank"><span>{String(index + 1).padStart(2, '0')}</span>{index < 3 && <b>{badge.icon}</b>}</div>
       <div className="row-avatar" style={{ '--accent': player.accent }}>{player.emoji}</div>
       <div className="row-name"><strong title={player.name}>{player.name}</strong><span>{badge.label}</span></div>
-      <div className="row-progress"><div><span style={{ width: `${progress}%`, background: player.accent }} /></div><small>{leaderPoints > 0 ? `${progress}% of leader` : 'No penalties yet'}</small></div>
+      <div className="row-progress"><PlayerSparkline playerId={player.id} history={history} accent={player.accent} /><small>{leaderPoints > 0 ? `${progress}% of leader` : 'No penalties yet'}</small></div>
       <div className="row-points"><strong>{player.points_total}</strong><span>points</span></div>
-      <div className="row-reaction" aria-label={`${player.name} recognition`}>{index === 0 ? '🏆' : index === 1 ? '🥈' : index === 2 ? '🥉' : badge.icon}</div>
+      <div className={`row-reaction reaction-${reaction.tone}`} title={reaction.label} aria-label={`${player.name}: ${reaction.label}`}>{reaction.face}</div>
     </article>
   );
 }
 
-function Leaderboard({ players, loading }) {
+function Leaderboard({ players, history, loading }) {
   const leaderPoints = players[0]?.points_total || 0;
   return (
     <section className="leaderboard-section" id="leaderboard">
@@ -181,22 +204,9 @@ function Leaderboard({ players, loading }) {
         <>
           <Podium players={players} />
           <div className="list-heading"><span>Full league table</span><span>Recognition is very serious business</span></div>
-          <div className="player-list">{players.map((player, index) => <PlayerRow key={player.id} player={player} index={index} leaderPoints={leaderPoints} />)}</div>
+          <div className="player-list">{players.map((player, index) => <PlayerRow key={player.id} player={player} index={index} leaderPoints={leaderPoints} history={history} totalPlayers={players.length} />)}</div>
         </>
       )}
-    </section>
-  );
-}
-
-function RulesStrip() {
-  return (
-    <section className="rules-strip" aria-labelledby="rules-title">
-      <div><p className="eyebrow">Thirty-second rulebook</p><h2 id="rules-title">Simple rules.<br /><em>Maximum debate.</em></h2></div>
-      <ol>
-        <li><span>01</span><div><strong>Lose the moment</strong><p>A player loses or misses a cut. The room takes note.</p></div></li>
-        <li><span>02</span><div><strong>Add 1 to 9</strong><p>The scorekeeper adds penalty points to the existing total.</p></div></li>
-        <li><span>03</span><div><strong>Sign the receipt</strong><p>Time, reason, admin and previous hash make an audit trail.</p></div></li>
-      </ol>
     </section>
   );
 }
@@ -246,12 +256,19 @@ function AdminPanel({ onClose, players, events, adminUser, onLogin, onRefresh, o
   const [pointBusy, setPointBusy] = useState(false);
   const [consent, setConsent] = useState(true);
   const [formMessage, setFormMessage] = useState(null);
+  const [editingPlayer, setEditingPlayer] = useState(null);
+  const [correction, setCorrection] = useState({ playerId: '', points: -1, reason: '' });
+  const [manageBusy, setManageBusy] = useState(false);
 
   useEffect(() => {
     if (!pointForm.playerId && players.length > 0) {
       setPointForm((current) => ({ ...current, playerId: players[0].id }));
     }
   }, [players, pointForm.playerId]);
+
+  useEffect(() => {
+    if (!correction.playerId && players.length > 0) setCorrection((current) => ({ ...current, playerId: players[0].id }));
+  }, [players, correction.playerId]);
 
   const handleLogin = async (form) => {
     setLoginBusy(true); setLoginError('');
@@ -294,6 +311,28 @@ function AdminPanel({ onClose, players, events, adminUser, onLogin, onRefresh, o
     finally { setPointBusy(false); }
   };
 
+  const handleUpdatePlayer = async (event) => {
+    event.preventDefault(); setManageBusy(true); setFormMessage(null);
+    try { await updatePlayer(editingPlayer); setEditingPlayer(null); await onRefresh(); setFormMessage({ type: 'success', text: 'Player profile updated.' }); }
+    catch (error) { setFormMessage({ type: 'error', text: error.message || 'Player could not be updated.' }); }
+    finally { setManageBusy(false); }
+  };
+
+  const handleArchivePlayer = async (player) => {
+    if (!window.confirm(`Archive ${player.name}? Their signed score history will remain in the ledger.`)) return;
+    setManageBusy(true); setFormMessage(null);
+    try { await archivePlayer(player.id); await onRefresh(); setFormMessage({ type: 'success', text: `${player.name} was archived safely.` }); }
+    catch (error) { setFormMessage({ type: 'error', text: error.message || 'Player could not be archived.' }); }
+    finally { setManageBusy(false); }
+  };
+
+  const handleCorrection = async (event) => {
+    event.preventDefault(); setManageBusy(true); setFormMessage(null);
+    try { await adjustScore(correction); await onRefresh(); setCorrection({ ...correction, points: -1, reason: '' }); setFormMessage({ type: 'success', text: 'Score correction signed and applied.' }); onBurst(); }
+    catch (error) { setFormMessage({ type: 'error', text: error.message || 'Score could not be corrected.' }); }
+    finally { setManageBusy(false); }
+  };
+
   if (!adminUser) return <div className="modal-backdrop"><div className="admin-modal login-modal"><button className="close-button" type="button" onClick={onClose} aria-label="Close admin panel">×</button><LoginPanel onLogin={handleLogin} busy={loginBusy} error={loginError} /></div></div>;
 
   const selectedPlayer = players.find((player) => player.id === pointForm.playerId);
@@ -311,9 +350,9 @@ function AdminPanel({ onClose, players, events, adminUser, onLogin, onRefresh, o
             <button className="dark-button full-width" disabled={playerBusy} type="submit">{playerBusy ? 'Adding...' : 'Add to the arena'} <span>+</span></button>
           </form>
           <form className="admin-card points-card" onSubmit={handlePoints}>
-            <div className="card-title"><span className="card-number">02</span><div><h3>Drop a point</h3><p>One to nine, because chaos needs boundaries.</p></div></div>
+            <div className="card-title"><span className="card-number">02</span><div><h3>Drop a point</h3><p>Type any whole number from 1 to 999.</p></div></div>
             <label>Who earned it?<select value={pointForm.playerId} onChange={(event) => setPointForm({ ...pointForm, playerId: event.target.value })}><option value="">Choose a player...</option>{players.map((player) => <option value={player.id} key={player.id}>{player.emoji} {player.name}, currently {player.points_total} pts</option>)}</select></label>
-            <label>How many points?<div className="point-picker">{Array.from({ length: 9 }, (_, index) => index + 1).map((point) => <button key={point} type="button" className={Number(pointForm.points) === point ? 'selected' : ''} onClick={() => setPointForm({ ...pointForm, points: point })}>{point}</button>)}</div></label>
+            <label>How many points?<input className="points-number-input" type="number" inputMode="numeric" min="1" max="999" step="1" value={pointForm.points} onChange={(event) => setPointForm({ ...pointForm, points: event.target.value })} /><div className="point-picker compact">{[1,2,3,5,9].map((point) => <button key={point} type="button" className={Number(pointForm.points) === point ? 'selected' : ''} onClick={() => setPointForm({ ...pointForm, points: point })}>+{point}</button>)}</div></label>
             <div className={`score-preview ${selectedPlayer ? 'ready' : ''}`}><span>{selectedPlayer?.emoji || '🎯'}</span><div><small>Score impact preview</small><strong>{selectedPlayer ? `${selectedPlayer.name}: ${selectedPlayer.points_total} → ${projectedTotal}` : 'Choose a player to preview the new total'}</strong></div><b>{selectedPlayer ? `+${pointForm.points}` : '—'}</b></div>
             <label>Official-ish reason<input minLength="3" maxLength="180" value={pointForm.reason} onChange={(event) => setPointForm({ ...pointForm, reason: event.target.value })} placeholder="Lost the round" /><span className="field-help">{pointForm.reason.length}/180 characters</span></label>
             <div className="reason-shortcuts" aria-label="Quick reasons">{['Lost the round', 'Missed the cut', 'Dice betrayal'].map((reason) => <button type="button" key={reason} onClick={() => setPointForm({ ...pointForm, reason })}>{reason}</button>)}</div>
@@ -321,6 +360,12 @@ function AdminPanel({ onClose, players, events, adminUser, onLogin, onRefresh, o
             {formMessage && <div className={`form-message inline-message ${formMessage.type}`} role="status">{formMessage.type === 'success' ? '✓' : '!' } {formMessage.text}</div>}
             <button className="primary-button full-width" disabled={pointBusy || players.length === 0 || !consent} type="submit">{pointBusy ? 'Signing the point...' : 'Sign and publish point'} <span>✦</span></button>
           </form>
+          <section className="admin-card manage-card">
+            <div className="card-title"><span className="card-number">03</span><div><h3>Manage players</h3><p>Edit profiles, archive players, or correct totals.</p></div></div>
+            <div className="manage-list">{players.map((player) => <div className="manage-player" key={player.id}><span style={{ '--accent': player.accent }}>{player.emoji}</span><div><strong>{player.name}</strong><small>{player.points_total} points</small></div><button type="button" onClick={() => setEditingPlayer({ ...player })}>Edit</button><button className="danger-link" type="button" onClick={() => handleArchivePlayer(player)} disabled={manageBusy}>Archive</button></div>)}</div>
+            {editingPlayer && <form className="edit-player-form" onSubmit={handleUpdatePlayer}><strong>Edit player</strong><label>Name<input maxLength="28" value={editingPlayer.name} onChange={(event) => setEditingPlayer({ ...editingPlayer, name: event.target.value })} /></label><div className="mini-fields"><label>Color<div className="color-picker">{palette.slice(0,8).map((color) => <button key={color} type="button" className={editingPlayer.accent === color ? 'selected' : ''} style={{ background: color }} onClick={() => setEditingPlayer({ ...editingPlayer, accent: color })} />)}</div></label><label>Emoji<div className="emoji-picker">{emojis.slice(0,8).map((emoji) => <button key={emoji} type="button" className={editingPlayer.emoji === emoji ? 'selected' : ''} onClick={() => setEditingPlayer({ ...editingPlayer, emoji })}>{emoji}</button>)}</div></label></div><div className="form-actions"><button type="button" onClick={() => setEditingPlayer(null)}>Cancel</button><button className="dark-button" disabled={manageBusy} type="submit">Save player</button></div></form>}
+            <form className="correction-form" onSubmit={handleCorrection}><strong>Correct a score</strong><p>Use a negative number to remove incorrect points. This creates a signed adjustment instead of rewriting history.</p><select value={correction.playerId} onChange={(event) => setCorrection({ ...correction, playerId: event.target.value })}>{players.map((player) => <option value={player.id} key={player.id}>{player.name}, {player.points_total} pts</option>)}</select><input type="number" inputMode="numeric" min="-999" max="999" step="1" value={correction.points} onChange={(event) => setCorrection({ ...correction, points: event.target.value })} /><input minLength="3" maxLength="180" placeholder="Reason for correction" value={correction.reason} onChange={(event) => setCorrection({ ...correction, reason: event.target.value })} /><button className="dark-button full-width" disabled={manageBusy} type="submit">Sign correction</button></form>
+          </section>
         </div>
         <div className="ledger-card">
           <div className="ledger-heading"><div><p className="eyebrow">Tamper-evident-ish ledger</p><h3>Recent moves</h3></div><span className="chain-mark">⛓</span></div>
@@ -335,9 +380,11 @@ function AdminPanel({ onClose, players, events, adminUser, onLogin, onRefresh, o
 }
 
 export default function App() {
-  const [players, setPlayers] = useState([]);
+  const cachedBoard = useMemo(() => getCachedLeaderboard(), []);
+  const [players, setPlayers] = useState(() => sortPlayers(cachedBoard?.players || []));
+  const [history, setHistory] = useState(() => cachedBoard?.history || []);
   const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !cachedBoard);
   const [error, setError] = useState('');
   const [authReady, setAuthReady] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
@@ -348,8 +395,8 @@ export default function App() {
 
   const refresh = useCallback(async () => {
     try {
-      const [nextPlayers, nextEvents] = await Promise.all([fetchPlayers(), fetchEvents()]);
-      setPlayers(sortPlayers(nextPlayers)); setEvents(nextEvents); setError('');
+      const [nextPlayers, nextEvents, nextHistory] = await Promise.all([fetchPlayers(), fetchEvents(), fetchScoreHistory()]);
+      setPlayers(sortPlayers(nextPlayers)); setEvents(nextEvents); setHistory(nextHistory); setError('');
     } catch (loadError) { setError(loadError.message || 'The scoreboard is taking a suspiciously long coffee break.'); }
     finally { setLoading(false); }
   }, []);
@@ -413,8 +460,7 @@ export default function App() {
         <Hero players={players} events={events} onOpenAdmin={openAdmin} />
         <LeagueSnapshot players={players} events={events} />
         <section className="ticker" aria-label="League status"><span className="ticker-label">NEWS FLASH</span><span className="ticker-copy">{leader ? `${leader.name} is currently holding the crown with ${leader.points_total} point${leader.points_total === 1 ? '' : 's'}.` : 'The dice are warming up. The first point is still available.'}</span><span className="ticker-time">{clock.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span></section>
-        <Leaderboard players={players} loading={loading} />
-        <RulesStrip />
+        <Leaderboard players={players} history={history} loading={loading} />
         {!online && <div className="offline-banner" role="status">You are offline. The last loaded scores are still visible, but new updates will wait for a connection.</div>}
         {error && <div className="global-error" role="alert">⚠️ {error} <button onClick={refresh} type="button">Try again</button></div>}
       </main>
