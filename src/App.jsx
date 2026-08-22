@@ -273,6 +273,12 @@ function AdminPanel({ onClose, players, events, adminUser, onLogin, onRefresh, o
   const [consent, setConsent] = useState(true);
   const [formMessage, setFormMessage] = useState(null);
 
+  useEffect(() => {
+    if (!pointForm.playerId && players.length > 0) {
+      setPointForm((current) => ({ ...current, playerId: players[0].id }));
+    }
+  }, [players, pointForm.playerId]);
+
   const handleLogin = async (form) => {
     setLoginBusy(true); setLoginError('');
     try { await onLogin(form); } catch (error) { setLoginError(error.message || 'Could not open the scorebook.'); } finally { setLoginBusy(false); }
@@ -295,7 +301,7 @@ function AdminPanel({ onClose, players, events, adminUser, onLogin, onRefresh, o
   const handlePoints = async (event) => {
     event.preventDefault();
     if (!pointForm.playerId) return setFormMessage({ type: 'error', text: 'Choose a player first. The points need an address.' });
-    if (!pointForm.reason.trim()) return setFormMessage({ type: 'error', text: 'Add a tiny reason, so future historians know what happened.' });
+    if (pointForm.reason.trim().length < 3) return setFormMessage({ type: 'error', text: 'Write at least 3 characters for the reason.' });
     if (!consent) return setFormMessage({ type: 'error', text: 'Confirm the signed receipt before publishing this point.' });
     setPointBusy(true); setFormMessage(null);
     try {
@@ -304,7 +310,13 @@ function AdminPanel({ onClose, players, events, adminUser, onLogin, onRefresh, o
       await onRefresh();
       setFormMessage({ type: 'success', text: `+${pointForm.points} point signed, witnessed, and released into the wild.` });
       onBurst();
-    } catch (error) { setFormMessage({ type: 'error', text: error.message || 'The point refused to enter the ledger.' }); }
+    } catch (error) {
+      const rawMessage = error.message || 'The point refused to enter the ledger.';
+      const friendlyMessage = rawMessage.includes('digest')
+        ? 'The database scoring function needs the included SQL repair. Run supabase/fix-point-scoring.sql once in Supabase.'
+        : rawMessage;
+      setFormMessage({ type: 'error', text: friendlyMessage });
+    }
     finally { setPointBusy(false); }
   };
 
@@ -329,8 +341,10 @@ function AdminPanel({ onClose, players, events, adminUser, onLogin, onRefresh, o
             <label>Who earned it?<select value={pointForm.playerId} onChange={(event) => setPointForm({ ...pointForm, playerId: event.target.value })}><option value="">Choose a player...</option>{players.map((player) => <option value={player.id} key={player.id}>{player.emoji} {player.name}, currently {player.points_total} pts</option>)}</select></label>
             <label>How many points?<div className="point-picker">{Array.from({ length: 9 }, (_, index) => index + 1).map((point) => <button key={point} type="button" className={Number(pointForm.points) === point ? 'selected' : ''} onClick={() => setPointForm({ ...pointForm, points: point })}>{point}</button>)}</div></label>
             <div className={`score-preview ${selectedPlayer ? 'ready' : ''}`}><span>{selectedPlayer?.emoji || '🎯'}</span><div><small>Score impact preview</small><strong>{selectedPlayer ? `${selectedPlayer.name}: ${selectedPlayer.points_total} → ${projectedTotal}` : 'Choose a player to preview the new total'}</strong></div><b>{selectedPlayer ? `+${pointForm.points}` : '—'}</b></div>
-            <label>Official-ish reason<input maxLength="180" value={pointForm.reason} onChange={(event) => setPointForm({ ...pointForm, reason: event.target.value })} placeholder="They cut three tokens and looked innocent" /></label>
+            <label>Official-ish reason<input minLength="3" maxLength="180" value={pointForm.reason} onChange={(event) => setPointForm({ ...pointForm, reason: event.target.value })} placeholder="Lost the round" /><span className="field-help">{pointForm.reason.length}/180 characters</span></label>
+            <div className="reason-shortcuts" aria-label="Quick reasons">{['Lost the round', 'Missed the cut', 'Dice betrayal'].map((reason) => <button type="button" key={reason} onClick={() => setPointForm({ ...pointForm, reason })}>{reason}</button>)}</div>
             <label className="consent-box"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} /><span><strong>Witnessed and approved.</strong><small>This point will be signed with the current time, admin identity, and previous event hash.</small></span><span className="stamp">{consent ? '✓' : '!'}</span></label>
+            {formMessage && <div className={`form-message inline-message ${formMessage.type}`} role="status">{formMessage.type === 'success' ? '✓' : '!' } {formMessage.text}</div>}
             <button className="primary-button full-width" disabled={pointBusy || players.length === 0 || !consent} type="submit">{pointBusy ? 'Signing the point...' : 'Sign and publish point'} <span>✦</span></button>
           </form>
         </div>
@@ -341,7 +355,7 @@ function AdminPanel({ onClose, players, events, adminUser, onLogin, onRefresh, o
           <button className="logout-button" type="button" onClick={onLogout}>Lock the scorekeeper deck <span>↗</span></button>
         </div>
       </div>
-      {formMessage && <div className={`form-message ${formMessage.type}`} role="status">{formMessage.type === 'success' ? '✦' : '!' } {formMessage.text}</div>}
+      {formMessage && <div className={`form-message desktop-message ${formMessage.type}`} role="status">{formMessage.type === 'success' ? '✓' : '!' } {formMessage.text}</div>}
     </div></div>
   );
 }
