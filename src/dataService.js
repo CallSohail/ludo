@@ -1,4 +1,4 @@
-import { config, isSupabaseConfigured } from './config';
+import { isSupabaseConfigured } from './config';
 import { supabase } from './supabase';
 
 const PLAYERS_KEY = 'ludo-super-league:players';
@@ -149,21 +149,6 @@ export async function addPoints({ playerId, points, reason, consent }) {
   });
   if (error) throw error;
   return Array.isArray(data) ? data[0] : data;
-}
-
-export async function signInSite(username, password) {
-  if (!isSupabaseConfigured) {
-    throw new Error('Site access is not configured. Add the Supabase values and redeploy.');
-  }
-  if (username.trim().toLowerCase() !== config.siteUsername.toLowerCase()) {
-    throw new Error('Username or password is incorrect.');
-  }
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: config.siteAuthEmail,
-    password,
-  });
-  if (error || !data.user) throw new Error('Username or password is incorrect.');
-  return { user: data.user };
 }
 
 export async function getAdminProfile(userId) {
