@@ -111,6 +111,12 @@ export async function createPlayer({ name, accent, emoji }) {
 }
 
 export async function addPoints({ playerId, points, reason, consent }) {
+  const numericPoints = Number(points);
+  const cleanReason = reason.trim();
+  if (!playerId) throw new Error('Choose a player before publishing the point.');
+  if (!Number.isInteger(numericPoints) || numericPoints < 1 || numericPoints > 9) throw new Error('Points must be a whole number from 1 to 9.');
+  if (cleanReason.length < 3 || cleanReason.length > 180) throw new Error('The reason must contain 3 to 180 characters.');
+  if (consent !== true) throw new Error('Confirm the signed receipt before publishing.');
   if (!isSupabaseConfigured) {
     const players = getDemoPlayers();
     const events = getDemoEvents();
@@ -119,26 +125,26 @@ export async function addPoints({ playerId, points, reason, consent }) {
     const previousHash = events[0]?.event_hash || 'GENESIS-LUDO-2026';
     const createdAt = new Date().toISOString();
     const eventNumber = events.length + 1;
-    const eventHash = await sha256(`${previousHash}|${eventNumber}|${playerId}|${points}|${reason}|${createdAt}`);
+    const eventHash = await sha256(`${previousHash}|${eventNumber}|${playerId}|${numericPoints}|${cleanReason}|${createdAt}`);
     const event = {
       id: `demo-event-${Date.now()}`,
       event_number: eventNumber,
       player_id: playerId,
-      points,
-      reason,
+      points: numericPoints,
+      reason: cleanReason,
       previous_hash: previousHash,
       event_hash: eventHash,
       created_by: 'demo-admin',
       created_at: createdAt,
     };
-    player.points_total += points;
+    player.points_total = Number(player.points_total || 0) + numericPoints;
     saveDemo(players, [event, ...events]);
     return event;
   }
   const { data, error } = await supabase.rpc('add_point_event', {
     p_player_id: playerId,
-    p_points: points,
-    p_reason: reason.trim(),
+    p_points: numericPoints,
+    p_reason: cleanReason,
     p_consent: consent,
   });
   if (error) throw error;
