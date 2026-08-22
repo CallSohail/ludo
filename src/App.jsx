@@ -19,17 +19,14 @@ const initialPointForm = { playerId: '', points: 1, reason: '' };
 
 function sortPlayers(players) {
   return [...players].sort((a, b) => {
-    if (b.points_total !== a.points_total) return b.points_total - a.points_total;
+    const pointsDifference = Number(b.points_total || 0) - Number(a.points_total || 0);
+    if (pointsDifference !== 0) return pointsDifference;
     return new Date(a.created_at || 0) - new Date(b.created_at || 0);
   });
 }
 
-function ordinal(value) {
-  const suffix = ['th', 'st', 'nd', 'rd'][value % 100 > 10 && value % 100 < 20 ? 0 : value % 10] || 'th';
-  return `${value}${suffix}`;
-}
-
 function formatDate(date, withSeconds = false) {
+  if (!date || Number.isNaN(new Date(date).getTime())) return 'Time unavailable';
   return new Intl.DateTimeFormat('en-GB', {
     day: '2-digit',
     month: 'short',
@@ -62,7 +59,7 @@ function Fireworks({ burstKey }) {
   );
 }
 
-function Header({ onOpenAdmin, onSiteLogout, adminUser }) {
+function Header({ onOpenAdmin, onSiteLogout, adminUser, online }) {
   return (
     <header className="site-header">
       <a className="brand" href="#top" aria-label="Ludo Super League home">
@@ -73,7 +70,7 @@ function Header({ onOpenAdmin, onSiteLogout, adminUser }) {
         </span>
       </a>
       <div className="header-actions">
-        <span className="live-pill"><span className="live-dot" /> Live board</span>
+        <span className={`live-pill ${online ? '' : 'offline'}`}><span className="live-dot" /> {online ? 'Live board' : 'Offline'}</span>
         <button className="admin-trigger" onClick={onOpenAdmin} type="button">
           <span>{adminUser ? '⚙️ Admin deck' : '🔐 Admin deck'}</span>
         </button>
@@ -83,15 +80,16 @@ function Header({ onOpenAdmin, onSiteLogout, adminUser }) {
   );
 }
 
-function Hero({ players, onOpenAdmin }) {
+function Hero({ players, events, onOpenAdmin }) {
   const leader = players[0];
-  const totalPoints = players.reduce((sum, player) => sum + player.points_total, 0);
+  const totalPoints = players.reduce((sum, player) => sum + Number(player.points_total || 0), 0);
+  const lastMove = events[0];
   return (
     <section className="hero" id="top">
       <div className="hero-copy">
-        <p className="eyebrow"><span>EVRY</span> • 2026 • Round in progress</p>
-        <h1>Every point has<br /><em>a little drama.</em></h1>
-        <p className="hero-text">Welcome to the scoreboard where one tiny point can turn a calm Ludo night into a full courtroom investigation.</p>
+        <p className="eyebrow"><span>EVRY</span> 2026 season • Live standings</p>
+        <h1>Lose a round.<br /><em>Earn the drama.</em></h1>
+        <p className="hero-text">The official home of friendly defeats. Every loss adds penalty points, every point leaves a signed trace, and the highest score earns the crown nobody asked for.</p>
         <div className="hero-buttons">
           <a className="primary-button" href="#leaderboard">See the leaderboard <span>↓</span></a>
           <button className="text-button" type="button" onClick={onOpenAdmin}>I am the scorekeeper <span>↗</span></button>
@@ -99,11 +97,11 @@ function Hero({ players, onOpenAdmin }) {
         <div className="hero-stats">
           <div><strong>{players.length}</strong><span>players in<br />the arena</span></div>
           <div><strong>{totalPoints}</strong><span>points, allegedly<br />earned fairly</span></div>
-          <div><strong>24<span>h</span></strong><span>live score<br />watching</span></div>
+          <div><strong>{lastMove ? formatDate(lastMove.created_at).split(',')[0] : '—'}</strong><span>latest signed<br />move</span></div>
         </div>
       </div>
       <div className="hero-art" aria-label={leader ? `${leader.name} is currently leading` : 'The board is waiting for its first player'}>
-        <div className="burst-label">The board<br /><strong>is watching</strong> 👀</div>
+        <div className="burst-label">Current headline<br /><strong>{leader ? `${leader.name} leads` : 'Seats available'}</strong> {leader?.emoji || '🎲'}</div>
         <div className="game-board">
           <div className="board-center"><span>⚡</span><small>LUDO<br />LEAGUE</small></div>
           <span className="board-piece piece-a">{leader?.emoji || '🎲'}</span>
@@ -115,6 +113,20 @@ function Hero({ players, onOpenAdmin }) {
         <div className="hero-sticker sticker-one">No mercy<br />just points</div>
         <div className="hero-sticker sticker-two">#1<br />energy</div>
       </div>
+    </section>
+  );
+}
+
+function LeagueSnapshot({ players, events }) {
+  const leader = players[0];
+  const total = players.reduce((sum, player) => sum + Number(player.points_total || 0), 0);
+  const tiedLeaders = leader ? players.filter((player) => Number(player.points_total) === Number(leader.points_total)).length : 0;
+  const latest = events[0];
+  return (
+    <section className="snapshot" aria-label="League snapshot">
+      <article><span className="snapshot-icon">♛</span><div><small>Penalty leader</small><strong title={leader?.name}>{leader?.name || 'No leader yet'}</strong><p>{leader ? `${leader.points_total} point${Number(leader.points_total) === 1 ? '' : 's'}${tiedLeaders > 1 ? `, ${tiedLeaders}-way tie` : ''}` : 'Add the first player'}</p></div></article>
+      <article><span className="snapshot-icon">⚡</span><div><small>League pressure</small><strong>{total} total points</strong><p>Across {players.length} active player{players.length === 1 ? '' : 's'}</p></div></article>
+      <article><span className="snapshot-icon">⛓</span><div><small>Latest receipt</small><strong>{latest ? `Move #${latest.event_number || '—'}` : 'Ledger ready'}</strong><p>{latest ? formatDate(latest.created_at, true) : 'Waiting for first point'}</p></div></article>
     </section>
   );
 }
@@ -133,7 +145,7 @@ function Podium({ players }) {
             <div className="podium-rank">{index === 0 ? '01' : index === 1 ? '02' : '03'}</div>
             <div className="podium-avatar" style={{ '--accent': player.accent }}>{player.emoji}</div>
             <div className="podium-medal">{badge.icon}</div>
-            <h3>{player.name}</h3>
+            <h3 title={player.name}>{player.name}</h3>
             <span className="badge-label">{badge.label}</span>
             <strong className="podium-score">{player.points_total}<small> pts</small></strong>
             {index === 0 && <span className="crown">♛</span>}
@@ -146,13 +158,13 @@ function Podium({ players }) {
 
 function PlayerRow({ player, index, leaderPoints }) {
   const badge = getBadge(index, player.points_total);
-  const progress = leaderPoints ? Math.max(7, Math.round((player.points_total / leaderPoints) * 100)) : 7;
+  const progress = leaderPoints > 0 ? Math.round((Number(player.points_total || 0) / leaderPoints) * 100) : 0;
   return (
     <article className={`player-row ${index < 3 ? 'top-row' : ''}`}>
       <div className="row-rank"><span>{String(index + 1).padStart(2, '0')}</span>{index < 3 && <b>{badge.icon}</b>}</div>
       <div className="row-avatar" style={{ '--accent': player.accent }}>{player.emoji}</div>
-      <div className="row-name"><strong>{player.name}</strong><span>{badge.label}</span></div>
-      <div className="row-progress"><div><span style={{ width: `${progress}%`, background: player.accent }} /></div><small>{progress}% of leader</small></div>
+      <div className="row-name"><strong title={player.name}>{player.name}</strong><span>{badge.label}</span></div>
+      <div className="row-progress"><div><span style={{ width: `${progress}%`, background: player.accent }} /></div><small>{leaderPoints > 0 ? `${progress}% of leader` : 'No penalties yet'}</small></div>
       <div className="row-points"><strong>{player.points_total}</strong><span>points</span></div>
       <div className="row-reaction" aria-label={`${player.name} recognition`}>{index === 0 ? '🏆' : index === 1 ? '🥈' : index === 2 ? '🥉' : badge.icon}</div>
     </article>
@@ -165,7 +177,7 @@ function Leaderboard({ players, loading }) {
     <section className="leaderboard-section" id="leaderboard">
       <div className="section-heading">
         <div><p className="eyebrow">The official-ish standings</p><h2>Who is <em>winning?</em></h2></div>
-        <div className="heading-note">Sorted by points.<br /><strong>Feelings not included.</strong></div>
+        <div className="heading-note">More losses, more points.<br /><strong>Highest total ranks first.</strong></div>
       </div>
       {loading ? <div className="loading-board"><span className="spinner" />Rolling the scoreboard...</div> : players.length === 0 ? <div className="empty-board"><span>🎲</span><h3>The board is suspiciously empty.</h3><p>Open the admin deck and add your first player.</p></div> : (
         <>
@@ -174,6 +186,19 @@ function Leaderboard({ players, loading }) {
           <div className="player-list">{players.map((player, index) => <PlayerRow key={player.id} player={player} index={index} leaderPoints={leaderPoints} />)}</div>
         </>
       )}
+    </section>
+  );
+}
+
+function RulesStrip() {
+  return (
+    <section className="rules-strip" aria-labelledby="rules-title">
+      <div><p className="eyebrow">Thirty-second rulebook</p><h2 id="rules-title">Simple rules.<br /><em>Maximum debate.</em></h2></div>
+      <ol>
+        <li><span>01</span><div><strong>Lose the moment</strong><p>A player loses or misses a cut. The room takes note.</p></div></li>
+        <li><span>02</span><div><strong>Add 1 to 9</strong><p>The scorekeeper adds penalty points to the existing total.</p></div></li>
+        <li><span>03</span><div><strong>Sign the receipt</strong><p>Time, reason, admin and previous hash make an audit trail.</p></div></li>
+      </ol>
     </section>
   );
 }
@@ -190,6 +215,7 @@ function Footer({ onOpenAdmin, eventCount }) {
 
 function SiteAccessGate({ onLogin, busy, error }) {
   const [form, setForm] = useState({ username: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
   const submit = (event) => { event.preventDefault(); onLogin(form); };
   return (
     <main className="access-shell">
@@ -200,7 +226,7 @@ function SiteAccessGate({ onLogin, busy, error }) {
         <p className="access-copy">This leaderboard is invitation-only. Enter the shared table credentials to see the scores.</p>
         <form className="access-form" onSubmit={submit}>
           <label>Username<input autoComplete="username" value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} placeholder="Enter your table username" required /></label>
-          <label>Password<input autoComplete="current-password" type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} placeholder="Enter your table password" required /></label>
+          <label>Password<div className="password-field"><input autoComplete="current-password" type={showPassword ? 'text' : 'password'} value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} placeholder="Enter your table password" required /><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? 'Hide' : 'Show'}</button></div></label>
           {error && <div className="form-error" role="alert">{error}</div>}
           <button className="primary-button full-width" disabled={busy} type="submit">{busy ? 'Checking the guest list...' : 'Enter the Ludo table'} <span>↗</span></button>
         </form>
@@ -217,6 +243,7 @@ function AccessLoading() {
 
 function LoginPanel({ onLogin, busy, error }) {
   const [form, setForm] = useState({ username: '', password: '', remembered: true });
+  const [showPassword, setShowPassword] = useState(false);
   const submit = (event) => { event.preventDefault(); onLogin(form); };
   return (
     <div className="login-screen">
@@ -226,7 +253,7 @@ function LoginPanel({ onLogin, busy, error }) {
       <p className="login-copy">The players can watch. Only the scorekeeper can make the numbers move.</p>
       <form onSubmit={submit} className="login-form">
         <label>Username or email<input autoComplete="username" value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} placeholder="scorekeeper@example.com" required /></label>
-        <label>Password<input autoComplete="current-password" type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} placeholder="Your secret dice password" required /></label>
+        <label>Password<div className="password-field"><input autoComplete="current-password" type={showPassword ? 'text' : 'password'} value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} placeholder="Your secret dice password" required /><button type="button" onClick={() => setShowPassword((value) => !value)}>{showPassword ? 'Hide' : 'Show'}</button></div></label>
         <label className="check-label"><input type="checkbox" checked={form.remembered} onChange={(event) => setForm({ ...form, remembered: event.target.checked })} /><span>Remember this scorekeeper on this device, no suspicious dice rolling.</span></label>
         {error && <div className="form-error" role="alert">{error}</div>}
         <button className="primary-button full-width" disabled={busy} type="submit">{busy ? 'Checking the ledger...' : 'Unlock the scorebook'} <span>↗</span></button>
@@ -243,6 +270,7 @@ function AdminPanel({ onClose, players, events, adminUser, onLogin, onRefresh, o
   const [pointForm, setPointForm] = useState(initialPointForm);
   const [playerBusy, setPlayerBusy] = useState(false);
   const [pointBusy, setPointBusy] = useState(false);
+  const [consent, setConsent] = useState(true);
   const [formMessage, setFormMessage] = useState(null);
 
   const handleLogin = async (form) => {
@@ -268,9 +296,10 @@ function AdminPanel({ onClose, players, events, adminUser, onLogin, onRefresh, o
     event.preventDefault();
     if (!pointForm.playerId) return setFormMessage({ type: 'error', text: 'Choose a player first. The points need an address.' });
     if (!pointForm.reason.trim()) return setFormMessage({ type: 'error', text: 'Add a tiny reason, so future historians know what happened.' });
+    if (!consent) return setFormMessage({ type: 'error', text: 'Confirm the signed receipt before publishing this point.' });
     setPointBusy(true); setFormMessage(null);
     try {
-      await addPoints({ ...pointForm, points: Number(pointForm.points), consent: true });
+      await addPoints({ ...pointForm, points: Number(pointForm.points), consent });
       setPointForm({ ...initialPointForm, playerId: pointForm.playerId });
       await onRefresh();
       setFormMessage({ type: 'success', text: `+${pointForm.points} point signed, witnessed, and released into the wild.` });
@@ -280,6 +309,9 @@ function AdminPanel({ onClose, players, events, adminUser, onLogin, onRefresh, o
   };
 
   if (!adminUser) return <div className="modal-backdrop"><div className="admin-modal login-modal"><button className="close-button" type="button" onClick={onClose} aria-label="Close admin panel">×</button><LoginPanel onLogin={handleLogin} busy={loginBusy} error={loginError} /></div></div>;
+
+  const selectedPlayer = players.find((player) => player.id === pointForm.playerId);
+  const projectedTotal = Number(selectedPlayer?.points_total || 0) + Number(pointForm.points || 0);
 
   return (
     <div className="modal-backdrop"><div className="admin-modal admin-console">
@@ -296,9 +328,10 @@ function AdminPanel({ onClose, players, events, adminUser, onLogin, onRefresh, o
             <div className="card-title"><span className="card-number">02</span><div><h3>Drop a point</h3><p>One to nine, because chaos needs boundaries.</p></div></div>
             <label>Who earned it?<select value={pointForm.playerId} onChange={(event) => setPointForm({ ...pointForm, playerId: event.target.value })}><option value="">Choose a player...</option>{players.map((player) => <option value={player.id} key={player.id}>{player.emoji} {player.name}, currently {player.points_total} pts</option>)}</select></label>
             <label>How many points?<div className="point-picker">{Array.from({ length: 9 }, (_, index) => index + 1).map((point) => <button key={point} type="button" className={Number(pointForm.points) === point ? 'selected' : ''} onClick={() => setPointForm({ ...pointForm, points: point })}>{point}</button>)}</div></label>
+            <div className={`score-preview ${selectedPlayer ? 'ready' : ''}`}><span>{selectedPlayer?.emoji || '🎯'}</span><div><small>Score impact preview</small><strong>{selectedPlayer ? `${selectedPlayer.name}: ${selectedPlayer.points_total} → ${projectedTotal}` : 'Choose a player to preview the new total'}</strong></div><b>{selectedPlayer ? `+${pointForm.points}` : '—'}</b></div>
             <label>Official-ish reason<input maxLength="180" value={pointForm.reason} onChange={(event) => setPointForm({ ...pointForm, reason: event.target.value })} placeholder="They cut three tokens and looked innocent" /></label>
-            <label className="consent-box"><input type="checkbox" checked readOnly /><span><strong>Witnessed and approved.</strong><small>This point will be signed into the chain with the current time, admin identity, and the previous event hash.</small></span><span className="stamp">✓</span></label>
-            <button className="primary-button full-width" disabled={pointBusy || players.length === 0} type="submit">{pointBusy ? 'Signing the point...' : 'Sign and publish point'} <span>✦</span></button>
+            <label className="consent-box"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} /><span><strong>Witnessed and approved.</strong><small>This point will be signed with the current time, admin identity, and previous event hash.</small></span><span className="stamp">{consent ? '✓' : '!'}</span></label>
+            <button className="primary-button full-width" disabled={pointBusy || players.length === 0 || !consent} type="submit">{pointBusy ? 'Signing the point...' : 'Sign and publish point'} <span>✦</span></button>
           </form>
         </div>
         <div className="ledger-card">
@@ -326,6 +359,7 @@ export default function App() {
   const [adminUser, setAdminUser] = useState(null);
   const [burstKey, setBurstKey] = useState(0);
   const [clock, setClock] = useState(new Date());
+  const [online, setOnline] = useState(() => navigator.onLine);
 
   const refresh = useCallback(async () => {
     try {
@@ -367,6 +401,13 @@ export default function App() {
   }, [refresh, siteUser]);
 
   useEffect(() => {
+    const updateOnline = () => setOnline(navigator.onLine);
+    window.addEventListener('online', updateOnline);
+    window.addEventListener('offline', updateOnline);
+    return () => { window.removeEventListener('online', updateOnline); window.removeEventListener('offline', updateOnline); };
+  }, []);
+
+  useEffect(() => {
     if (!siteUser) return undefined;
     return watchForChanges(() => { refresh(); setBurstKey((key) => key + 1); });
   }, [refresh, siteUser]);
@@ -399,11 +440,14 @@ export default function App() {
   return (
     <div className="app-shell">
       <Fireworks burstKey={burstKey} />
-      <Header onOpenAdmin={openAdmin} onSiteLogout={handleLogout} adminUser={adminUser} />
+      <Header onOpenAdmin={openAdmin} onSiteLogout={handleLogout} adminUser={adminUser} online={online} />
       <main>
-        <Hero players={players} onOpenAdmin={openAdmin} />
+        <Hero players={players} events={events} onOpenAdmin={openAdmin} />
+        <LeagueSnapshot players={players} events={events} />
         <section className="ticker" aria-label="League status"><span className="ticker-label">NEWS FLASH</span><span className="ticker-copy">{leader ? `${leader.name} is currently holding the crown with ${leader.points_total} point${leader.points_total === 1 ? '' : 's'}.` : 'The dice are warming up. The first point is still available.'}</span><span className="ticker-time">{clock.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span></section>
         <Leaderboard players={players} loading={loading} />
+        <RulesStrip />
+        {!online && <div className="offline-banner" role="status">You are offline. The last loaded scores are still visible, but new updates will wait for a connection.</div>}
         {error && <div className="global-error" role="alert">⚠️ {error} <button onClick={refresh} type="button">Try again</button></div>}
       </main>
       <Footer onOpenAdmin={openAdmin} eventCount={events.length} />
