@@ -55,6 +55,16 @@ function getRankReaction(index, total) {
   return { face: '😌', label: 'Living peacefully', tone: 'happy' };
 }
 
+function initials(name = '') {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return '?';
+  return words.length === 1 ? words[0].slice(0, 2).toUpperCase() : `${words[0][0]}${words.at(-1)[0]}`.toUpperCase();
+}
+
+function PlayerToken({ player, className = '', size = 'md' }) {
+  return <span className={`player-token player-token-${size} ${className}`} style={{ '--token-color': player?.accent || palette[0] }} aria-hidden="true"><b>{initials(player?.name)}</b><i /><i /><i /></span>;
+}
+
 function PlayerSparkline({ playerId, history, accent }) {
   const moves = history.filter((event) => event.player_id === playerId).sort((a, b) => Number(a.event_number) - Number(b.event_number));
   let total = 0;
@@ -82,9 +92,15 @@ function PlayerSparkline({ playerId, history, accent }) {
   );
 }
 
-function Header({ onOpenAdmin, adminUser, online }) {
+function Header({ onOpenAdmin, adminUser, online, darkMode, onToggleTheme }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  useEffect(() => {
+    document.body.classList.toggle('nav-open', mobileOpen);
+    return () => document.body.classList.remove('nav-open');
+  }, [mobileOpen]);
+  const closeMenu = () => setMobileOpen(false);
   return (
-    <header className="site-header">
+    <header className={`site-header ${mobileOpen ? 'menu-open' : ''}`}>
       <a className="brand" href="#top" aria-label="Ludo Super League home">
         <span className="brand-die">⚄</span>
         <span>
@@ -99,10 +115,13 @@ function Header({ onOpenAdmin, adminUser, online }) {
       </nav>
       <div className="header-actions">
         <span className={`live-pill ${online ? '' : 'offline'}`}><span className="live-dot" /> {online ? 'Live board' : 'Offline'}</span>
+        <button className="theme-toggle" onClick={onToggleTheme} type="button" aria-label={darkMode ? 'Use paper theme' : 'Use stadium theme'}>{darkMode ? '☀' : '◐'}</button>
         <button className="admin-trigger" onClick={onOpenAdmin} type="button">
-          <span>{adminUser ? '⚙️ Admin deck' : '🔐 Admin deck'}</span>
+          <span>{adminUser ? 'Scorekeeper' : 'Scorekeeper'}</span>
         </button>
+        <button className="mobile-menu-toggle" onClick={() => setMobileOpen((value) => !value)} type="button" aria-expanded={mobileOpen} aria-controls="mobile-nav">{mobileOpen ? '×' : '☰'}<span className="sr-only">Menu</span></button>
       </div>
+      {mobileOpen && <div id="mobile-nav" className="mobile-nav-sheet"><div className="mobile-nav-links"><a href="#top" onClick={closeMenu}>Overview</a><a href="#leaderboard" onClick={closeMenu}>Standings</a><button type="button" onClick={() => { onToggleTheme(); closeMenu(); }}>{darkMode ? 'Use paper theme' : 'Use stadium theme'}</button></div><button className="primary-button full-width" type="button" onClick={() => { closeMenu(); onOpenAdmin(); }}>Open scorekeeper</button></div>}
     </header>
   );
 }
@@ -171,7 +190,7 @@ function Podium({ players, onOpen }) {
         return (
           <li className={`podium-card podium-${index + 1}`} key={player.id} style={{ '--accent': player.accent }}>
             <div className="podium-rank">{index === 0 ? '01' : index === 1 ? '02' : '03'}</div>
-            <div className={`podium-avatar reaction-${reaction.tone}`} style={{ '--accent': player.accent }}><span>{player.emoji}</span><b>{reaction.face}</b></div>
+          <div className={`podium-avatar reaction-${reaction.tone}`} style={{ '--accent': player.accent }}><PlayerToken player={player} size="lg" /><b>{reaction.face}</b></div>
             <div className="podium-medal">{badge.icon}</div>
             <h3 title={player.name}>{player.name}</h3>
             <span className="badge-label">{badge.label}</span>
@@ -192,9 +211,9 @@ function PlayerRow({ player, index, leaderPoints, history, totalPlayers, onOpen 
   return (
     <button className={`player-row ${index < 3 ? 'top-row' : ''}`} type="button" onClick={() => onOpen(player)} aria-label={`Open ${player.name} profile, rank ${index + 1}, ${player.points_total} points`}>
       <div className="row-rank"><span>{String(index + 1).padStart(2, '0')}</span>{index < 3 && <b>{badge.icon}</b>}</div>
-      <div className="row-avatar" style={{ '--accent': player.accent }}>{player.emoji}</div>
+      <PlayerToken player={player} className="row-avatar" />
       <div className="row-name"><strong title={player.name}>{player.name}</strong><span>{badge.label}</span></div>
-      <div className="row-progress"><PlayerSparkline playerId={player.id} history={history} accent={player.accent} /><span className="leader-meter" aria-label={`${progress}% of leader's score`}><span><i style={{ width: `${Math.min(100, progress)}%` }} /></span><b>{progress}% of leader</b></span></div>
+      <div className="row-progress"><PlayerSparkline playerId={player.id} history={history} accent={player.accent} /><span className={`leader-meter ${progress === 0 ? 'is-empty' : ''}`} aria-label={progress === 0 ? 'Yet to be punished' : `${progress}% of leader's score`}><span><i style={{ width: `${Math.min(100, progress)}%` }} /></span><b>{progress === 0 ? 'Yet to be punished' : `${progress}% of leader`}</b></span></div>
       <div className="row-points"><strong>{player.points_total}</strong><span>points</span></div>
       <div className={`row-reaction reaction-${reaction.tone}`} title={reaction.label} aria-label={`${player.name}: ${reaction.label}`}>{reaction.face}</div>
       <span className="row-open" aria-hidden="true">Profile</span>
@@ -241,7 +260,7 @@ function PlayerProfile({ player, index, players, history, onClose, returnFocusRe
       <section ref={dialogRef} className="player-profile" role="dialog" aria-modal="true" aria-labelledby="profile-name">
         <button ref={closeRef} className="profile-close" type="button" onClick={onClose} aria-label="Close player profile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg><span>Close</span></button>
         <header className="profile-hero" style={{ '--profile-accent': player.accent }}>
-          <div className="profile-avatar" aria-label={`${player.name} avatar`}><span>{player.emoji}</span><b>{reaction.face}</b></div>
+          <div className="profile-avatar" aria-label={`${player.name} player token`}><PlayerToken player={player} size="xl" /><b>{reaction.face}</b></div>
           <div className="profile-identity"><p>Player profile • Rank {String(index + 1).padStart(2, '0')}</p><h2 id="profile-name">{player.name}</h2><span>{badge.icon} {badge.label}</span></div>
           <div className="profile-total"><strong>{player.points_total}</strong><span>Penalty points</span></div>
         </header>
@@ -262,9 +281,21 @@ function PlayerProfile({ player, index, players, history, onClose, returnFocusRe
 
 function Leaderboard({ players, history, loading }) {
   const [profilePlayer, setProfilePlayer] = useState(null);
+  const [query, setQuery] = useState('');
+  const [sortBy, setSortBy] = useState('points');
+  const [compact, setCompact] = useState(false);
   const triggerRef = useRef(null);
   const leaderPoints = players[0]?.points_total || 0;
   const profileIndex = profilePlayer ? players.findIndex((player) => player.id === profilePlayer.id) : -1;
+  const visiblePlayers = useMemo(() => {
+    const filtered = players.filter((player) => player.name.toLowerCase().includes(query.trim().toLowerCase()));
+    return [...filtered].sort((a, b) => {
+      if (sortBy === 'name') return a.name.localeCompare(b.name);
+      if (sortBy === 'recent') return new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0);
+      if (sortBy === 'momentum') return Number(b.points_total || 0) - Number(a.points_total || 0);
+      return Number(b.points_total || 0) - Number(a.points_total || 0);
+    });
+  }, [players, query, sortBy]);
   return (
     <section className="leaderboard-section" id="leaderboard">
       <div className="section-heading">
@@ -274,8 +305,9 @@ function Leaderboard({ players, history, loading }) {
       {loading ? <div className="loading-board"><span className="spinner" />Rolling the scoreboard...</div> : players.length === 0 ? <div className="empty-board"><span>🎲</span><h3>The board is suspiciously empty.</h3><p>Open the admin deck and add your first player.</p></div> : (
         <>
           <Podium players={players} onOpen={(player) => { triggerRef.current = document.activeElement; setProfilePlayer(player); }} />
-          <div className="list-heading"><h3 id="table-heading">Full league table</h3><span>Higher penalty points rank first</span></div>
-          <ol className="player-list" aria-labelledby="table-heading">{players.map((player, index) => <li key={player.id}><PlayerRow player={player} index={index} leaderPoints={leaderPoints} history={history} totalPlayers={players.length} onOpen={(selected) => { triggerRef.current = document.activeElement; setProfilePlayer(selected); }} /></li>)}</ol>
+          <div className="list-heading"><div><h3 id="table-heading">Full league table</h3><span>Higher penalty points rank first</span></div><span>{players.length} player{players.length === 1 ? '' : 's'} · tap a row for the profile</span></div>
+          <div className="table-toolbar" role="search"><label className="table-search"><span className="sr-only">Search players</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search the league" /><button type="button" onClick={() => setQuery('')} aria-label="Clear player search">×</button></label><label className="table-sort"><span className="sr-only">Sort players</span><select value={sortBy} onChange={(event) => setSortBy(event.target.value)}><option value="points">Sort: points</option><option value="name">Sort: name</option><option value="recent">Sort: recent activity</option><option value="momentum">Sort: momentum</option></select></label><button className="view-toggle" type="button" aria-pressed={compact} onClick={() => setCompact((value) => !value)}>{compact ? 'Comfortable' : 'Compact'} view</button></div>
+          {visiblePlayers.length === 0 ? <div className="table-empty"><strong>No players match that search.</strong><button type="button" onClick={() => setQuery('')}>Reset search</button></div> : <ol className={`player-list ${compact ? 'is-compact' : ''}`} aria-labelledby="table-heading">{visiblePlayers.map((player) => { const rankIndex = players.findIndex((item) => item.id === player.id); return <li key={player.id}><PlayerRow player={player} index={rankIndex} leaderPoints={leaderPoints} history={history} totalPlayers={players.length} onOpen={(selected) => { triggerRef.current = document.activeElement; setProfilePlayer(selected); }} /></li>; })}</ol>}
         </>
       )}
       {profilePlayer && profileIndex >= 0 && <PlayerProfile player={players[profileIndex]} index={profileIndex} players={players} history={history} onClose={() => setProfilePlayer(null)} returnFocusRef={triggerRef} />}
@@ -473,6 +505,7 @@ export default function App() {
   const [adminOpen, setAdminOpen] = useState(false);
   const [adminUser, setAdminUser] = useState(null);
   const [burstKey, setBurstKey] = useState(0);
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('ludo-theme') === 'stadium');
   const [clock, setClock] = useState(new Date());
   const [online, setOnline] = useState(() => navigator.onLine);
 
@@ -518,6 +551,11 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    document.documentElement.dataset.theme = darkMode ? 'stadium' : 'paper';
+    localStorage.setItem('ludo-theme', darkMode ? 'stadium' : 'paper');
+  }, [darkMode]);
+
+  useEffect(() => {
     return watchForChanges(() => { refresh(); setBurstKey((key) => key + 1); });
   }, [refresh]);
   const handleLogin = async ({ username, password }) => {
@@ -538,7 +576,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <a className="skip-link" href="#leaderboard">Skip to leaderboard</a>
-      <Header onOpenAdmin={openAdmin} adminUser={adminUser} online={online} />
+      <Header onOpenAdmin={openAdmin} adminUser={adminUser} online={online} darkMode={darkMode} onToggleTheme={() => setDarkMode((value) => !value)} />
       <main>
         <Hero players={players} events={events} onOpenAdmin={openAdmin} />
         <LeagueSnapshot players={players} events={events} />
