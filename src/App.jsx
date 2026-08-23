@@ -483,6 +483,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#leaderboard">Skip to leaderboard</a>
       <Fireworks burstKey={burstKey} />
       <Header onOpenAdmin={openAdmin} adminUser={adminUser} online={online} />
       <main>
