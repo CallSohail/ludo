@@ -62,7 +62,19 @@ function initials(name = '') {
 }
 
 function PlayerToken({ player, className = '', size = 'md' }) {
-  return <span className={`player-token player-token-${size} ${className}`} style={{ '--token-color': player?.accent || palette[0] }} aria-hidden="true"><b>{initials(player?.name)}</b><i /><i /><i /></span>;
+  const isMubeen = player?.name?.trim().toLowerCase() === 'mubeen';
+  const avatarUrl = isMubeen ? `${import.meta.env.BASE_URL}mubeen-avatar.webp` : '';
+
+  return (
+    <span
+      className={`player-token player-token-${size} ${isMubeen ? 'player-token-photo' : ''} ${className}`}
+      style={{ '--token-color': player?.accent || palette[0] }}
+      aria-hidden="true"
+    >
+      {isMubeen ? <img src={avatarUrl} alt="" loading="eager" decoding="async" /> : <b>{initials(player?.name)}</b>}
+      {!isMubeen && <><i /><i /><i /></>}
+    </span>
+  );
 }
 
 function PlayerSparkline({ playerId, history, accent }) {
