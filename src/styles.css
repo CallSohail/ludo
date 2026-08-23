@@ -118,6 +118,78 @@ h1 em::after, h2 em::after { content: ''; position: absolute; height: 8px; left:
   .site-header, .hero, .leaderboard-section, .site-footer { padding-left: 19px; padding-right: 19px; }.site-header { padding-top: 20px; padding-bottom: 20px; }.live-pill { display: none; }.header-actions { gap: 9px; }.site-logout { font-size: 8px; }.admin-trigger { padding: 9px 11px; font-size: 10px; }.hero { min-height: auto; padding-top: 48px; padding-bottom: 54px; }.hero-text { font-size: 14px; }.hero-stats { gap: 14px; margin-top: 33px; }.hero-stats div { gap: 5px; padding-left: 7px; }.hero-stats strong { font-size: 25px; }.hero-stats span { font-size: 8px; }.hero-art { min-height: 360px; }.game-board { width: min(310px, 75vw); box-shadow: 11px 12px 0 var(--ink); }.board-piece { width: 41px; height: 41px; border-width: 2px; font-size: 20px; box-shadow: 3px 4px 0 var(--ink); }.burst-label { font-size: 17px; top: 0; }.hero-sticker { font-size: 15px; }.sticker-one { left: 0; bottom: 1%; width: 82px; height: 82px; }.sticker-two { right: 0; bottom: 0; width: 60px; height: 60px; font-size: 16px; }.ticker { margin: 0 19px; gap: 11px; padding: 0 12px; }.ticker-copy { font-size: 15px; }.leaderboard-section { padding-top: 82px; padding-bottom: 80px; }.section-heading { display: block; margin-bottom: 27px; }.heading-note { width: max-content; margin-top: 18px; text-align: left; }.podium { grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 45px; }.podium-card, .podium-card.podium-1 { min-height: 212px; padding: 17px 7px 13px; box-shadow: 4px 5px 0 var(--ink); }.podium-card.podium-1 { min-height: 246px; }.podium-avatar, .podium-1 .podium-avatar { width: 54px; height: 54px; border-radius: 16px; font-size: 29px; box-shadow: 3px 4px 0 var(--ink); }.podium-1 .podium-avatar { width: 67px; height: 67px; }.podium-medal { top: 56px; right: calc(50% - 50px); width: 25px; height: 25px; font-size: 13px; }.podium-1 .podium-medal { top: 62px; right: calc(50% - 57px); }.podium-card h3 { font-size: 18px; }.badge-label { font-size: 7px; letter-spacing: .06em; }.podium-score { font-size: 29px; }.crown { top: -24px; font-size: 38px; }.list-heading { padding: 0 3px 10px; font-size: 8px; }.list-heading span:last-child { display: none; }.player-row { grid-template-columns: 35px 39px minmax(0, 1fr) 45px 25px; gap: 8px; padding: 10px 3px; min-height: 70px; }.row-rank { font-size: 18px; }.row-rank b { display: none; }.row-avatar { width: 35px; height: 35px; border-radius: 11px; font-size: 18px; box-shadow: 2px 3px 0 var(--ink); }.row-name strong { font-size: 17px; }.row-name span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 7px; }.row-progress { display: none; }.row-points strong { font-size: 24px; }.row-points span { font-size: 7px; }.row-reaction { font-size: 17px; }.site-footer { display: block; padding-top: 25px; }.site-footer > div { margin-bottom: 22px; }.footer-ledger { justify-content: flex-start; }.footer-admin { margin-top: 4px; }.admin-modal { max-height: calc(100vh - 20px); }.admin-console { padding: 23px 15px 18px; }.admin-topbar h2 { font-size: 32px; }.admin-top-actions { gap: 12px; }.signed-in { max-width: 90px; text-align: right; font-size: 8px; }.admin-card, .ledger-card { padding: 16px; }.mini-fields { grid-template-columns: 1fr; }.login-screen { padding: 42px 24px 30px; }.login-screen h2 { font-size: 36px; }.ledger-row { grid-template-columns: 30px 1fr; }.ledger-hash { grid-column: 2; padding-top: 0; }.ledger-list { max-height: 280px; }.access-shell { padding: 18px 14px; }.access-card { padding: 38px 23px 30px; box-shadow: 8px 9px 0 var(--coral); }.access-card h1 { font-size: 43px; }.access-die { width: 58px; height: 58px; font-size: 32px; }.access-sticker { display: none; }
 }
 
+/* 2026 Evry palette and production UI refinement */
+:root {
+  --ink: #0a3d67;
+  --navy: #0a3d67;
+  --turquoise: #00b3c3;
+  --yellow: #ffbc00;
+  --orange: #ff8500;
+  --coral: #ff8500;
+  --mint: #00b3c3;
+  --blue: #0a3d67;
+  --cream: #f8fbfc;
+  --lilac: #e9f8fa;
+  --line: #d7e4e8;
+  --soft-shadow: 0 18px 45px rgba(10,61,103,.1);
+}
+body { color: var(--navy); background: var(--navy); }
+.app-shell { background: linear-gradient(180deg, #f9fcfd 0%, #ffffff 50%, #eef9fa 100%); }
+.app-shell::before { background-image: radial-gradient(rgba(0,179,195,.18) 1px, transparent 1px); }
+.site-header { border-color: rgba(10,61,103,.14); background: rgba(255,255,255,.88); box-shadow: 0 14px 36px rgba(10,61,103,.1); }
+.brand-die, .primary-button, .snapshot article:nth-child(2) .snapshot-icon { background: var(--orange); }
+.live-dot, .snapshot article:nth-child(3) .snapshot-icon { background: var(--turquoise); }
+.admin-trigger, .rules-strip, .site-footer, .ledger-card { background: var(--navy); }
+.hero h1 em, .section-heading h2 em, .login-screen h2 em { color: var(--orange); }
+.hero-sticker, .ticker, .podium-medal, .card-number, .admin-tabs button.active { background: var(--yellow); }
+.game-board { box-shadow: 18px 20px 0 var(--navy), 30px 32px 0 var(--turquoise); }
+.board-center { background: var(--navy); }
+.snapshot article { border-color: rgba(10,61,103,.12); box-shadow: var(--soft-shadow); }
+.podium-card { border-color: var(--navy); box-shadow: 8px 9px 0 var(--navy); }
+.podium-card.podium-1 { background: linear-gradient(155deg, #fff6d5, #fff); outline-color: rgba(255,188,0,.22); }
+.podium-card.podium-2 { background: linear-gradient(155deg, #e6f8fa, #fff); }
+.podium-card.podium-3 { background: linear-gradient(155deg, #fff0df, #fff); }
+.player-list { border-color: rgba(10,61,103,.12); background: rgba(255,255,255,.9); box-shadow: var(--soft-shadow); }
+.player-row { border-color: #e3edf0; }
+.player-row:hover { background: #f0fafb; }
+.row-avatar { border-color: var(--navy); box-shadow: 3px 4px 0 var(--navy); }
+.progress-chart { min-width: 0; padding: 6px 8px 4px; border: 1px solid #dce9ec; border-radius: 10px; background: linear-gradient(180deg,#fff,#f7fbfc); }
+.chart-meta { display: flex; justify-content: space-between; gap: 8px; color: #668095; font-size: 7px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.chart-meta b { color: var(--chart-accent); white-space: nowrap; }
+.sparkline { width: 100%; height: 42px; margin-top: 2px; overflow: visible; }
+.sparkline .chart-grid { fill: none; stroke: #dce8eb; stroke-width: .65; stroke-dasharray: 2 2; vector-effect: non-scaling-stroke; }
+.sparkline .chart-line { fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.sparkline .chart-point { stroke: white; stroke-width: .8; vector-effect: non-scaling-stroke; }
+.row-progress small { margin-top: 4px; color: #668095; font-weight: 700; }
+.admin-modal { border: 1px solid rgba(10,61,103,.18); box-shadow: 13px 15px 0 var(--turquoise); }
+.admin-topbar { background: #fff; }
+.admin-tabs { background: #f2fafb; }
+.admin-tabs button { border-color: #d5e5e8; }
+.admin-tabs button.active { border-color: var(--navy); box-shadow: 3px 3px 0 var(--navy); }
+.admin-tabs button.active > span { background: var(--navy); }
+.admin-card { border-color: var(--navy); box-shadow: 0 10px 28px rgba(10,61,103,.07); }
+.points-card { background: #edf9fa; }
+.points-card .card-number, .ledger-points { background: var(--orange); }
+.score-preview.ready { border-color: var(--turquoise); box-shadow: 3px 3px 0 var(--turquoise); }
+.consent-box input { accent-color: var(--turquoise); }
+.ledger-hash, .ledger-footer strong { color: #54e2e9; }
+.site-footer { border-top: 4px solid var(--turquoise); }
+
+@media (max-width: 610px) {
+  .player-list { display: grid; gap: 12px; overflow: visible; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+  .player-row, .player-row.top-row { grid-template-columns: 30px 42px minmax(0,1fr) 52px 30px; gap: 8px; min-height: 0; padding: 13px; border: 1px solid #d7e6e9; border-radius: 16px; background: white; box-shadow: 0 10px 24px rgba(10,61,103,.08); transform: none; contain: layout paint; }
+  .player-row:hover { transform: none; }
+  .player-row:first-child { border: 2px solid var(--yellow); box-shadow: 0 12px 28px rgba(255,188,0,.17); }
+  .row-progress { display: block; grid-column: 1 / -1; padding-top: 4px; }
+  .progress-chart { padding: 7px 9px 4px; }
+  .sparkline { height: 50px; }
+  .chart-meta { font-size: 7px; }
+  .row-name strong { font-size: 18px; }
+  .row-points strong { font-size: 25px; }
+  .admin-tabs { background: white; }
+  .admin-console .admin-grid { background: #f3fafb; }
+}
+
 /* Professional admin workspace, tabbed and scroll-safe */
 .modal-backdrop { overscroll-behavior: contain; }
 .admin-modal { scrollbar-gutter: stable; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
