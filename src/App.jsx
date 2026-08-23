@@ -258,7 +258,7 @@ function PlayerProfile({ player, index, players, history, onClose, returnFocusRe
   return createPortal(
     <div className="profile-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section ref={dialogRef} className="player-profile" role="dialog" aria-modal="true" aria-labelledby="profile-name">
-        <button ref={closeRef} className="profile-close" type="button" onClick={onClose} aria-label="Close player profile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg><span>Close</span></button>
+        <button ref={closeRef} className="profile-close" type="button" onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); onClose(); }} onClick={onClose} aria-label="Close player profile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg><span>Close</span></button>
         <header className="profile-hero" style={{ '--profile-accent': player.accent }}>
           <div className="profile-avatar" aria-label={`${player.name} player token`}><PlayerToken player={player} size="xl" /><b>{reaction.face}</b></div>
           <div className="profile-identity"><p>Player profile • Rank {String(index + 1).padStart(2, '0')}</p><h2 id="profile-name">{player.name}</h2><span>{badge.icon} {badge.label}</span></div>
