@@ -65,6 +65,7 @@ function PlayerToken({ player, className = '', size = 'md' }) {
   const playerKey = player?.name?.trim().toLowerCase();
   const avatarFile = {
     mubeen: 'mubeen-avatar.webp',
+    saboor: 'saboor-avatar.webp',
     sohail: 'sohail-avatar.webp',
   }[playerKey];
   const hasPortrait = Boolean(avatarFile);
