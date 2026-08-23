@@ -62,17 +62,22 @@ function initials(name = '') {
 }
 
 function PlayerToken({ player, className = '', size = 'md' }) {
-  const isMubeen = player?.name?.trim().toLowerCase() === 'mubeen';
-  const avatarUrl = isMubeen ? `${import.meta.env.BASE_URL}mubeen-avatar.webp` : '';
+  const playerKey = player?.name?.trim().toLowerCase();
+  const avatarFile = {
+    mubeen: 'mubeen-avatar.webp',
+    sohail: 'sohail-avatar.webp',
+  }[playerKey];
+  const hasPortrait = Boolean(avatarFile);
+  const avatarUrl = hasPortrait ? `${import.meta.env.BASE_URL}${avatarFile}` : '';
 
   return (
     <span
-      className={`player-token player-token-${size} ${isMubeen ? 'player-token-photo' : ''} ${className}`}
+      className={`player-token player-token-${size} ${hasPortrait ? 'player-token-photo' : ''} ${className}`}
       style={{ '--token-color': player?.accent || palette[0] }}
       aria-hidden="true"
     >
-      {isMubeen ? <img src={avatarUrl} alt="" loading="eager" decoding="async" /> : <b>{initials(player?.name)}</b>}
-      {!isMubeen && <><i /><i /><i /></>}
+      {hasPortrait ? <img src={avatarUrl} alt="" loading={playerKey === 'mubeen' ? 'eager' : 'lazy'} decoding="async" /> : <b>{initials(player?.name)}</b>}
+      {!hasPortrait && <><i /><i /><i /></>}
     </span>
   );
 }

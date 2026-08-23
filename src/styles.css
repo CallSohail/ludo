@@ -778,8 +778,8 @@ h1, h2, h3, .brand strong, .podium-card h3, .podium-score, .row-name strong, .ro
 .player-token-photo::before { display: none; }
 .player-token-photo img { width: 100%; height: 100%; display: block; object-fit: cover; object-position: 50% 22%; transform: scale(1.03); }
 @media (prefers-reduced-motion: no-preference) {
-  .player-token-photo img { animation: mubeen-avatar-alive 4.8s ease-in-out infinite; }
-  @keyframes mubeen-avatar-alive { 0%,100% { transform: scale(1.03) translateY(0); } 50% { transform: scale(1.065) translateY(-1%); } }
+  .player-token-photo img { animation: player-avatar-alive 4.8s ease-in-out infinite; }
+  @keyframes player-avatar-alive { 0%,100% { transform: scale(1.03) translateY(0); } 50% { transform: scale(1.065) translateY(-1%); } }
 }
 .player-token-sm { width: 32px; height: 32px; border-radius: 10px; font-size: 12px; }.player-token-md { width: 48px; height: 48px; font-size: 17px; }.player-token-lg { width: 88px; height: 88px; font-size: 29px; border-width: 3px; }.player-token-xl { width: 104px; height: 104px; font-size: 34px; border-width: 3px; }
 .row-avatar.player-token { width: 48px; height: 48px; margin: 0; border-radius: 14px; box-shadow: 3px 4px 0 rgba(18,18,43,.18); }
