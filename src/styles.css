@@ -531,6 +531,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 /* Final interaction and visual QA pass */
 body:has(.profile-backdrop) { overflow: hidden; }
+body:has(.profile-backdrop) .leaderboard-section { content-visibility: visible; contain: none; }
+body:has(.profile-backdrop) .player-row { contain: none; }
 .leader-meter { display: grid; grid-template-columns: minmax(0,1fr) max-content; align-items: center; gap: 9px; margin-top: 5px; }
 .leader-meter > span { height: 7px; overflow: hidden; border: 1px solid #d3e0e4; border-radius: 999px; background: #eaf0f2; }
 .leader-meter i { display: block; min-width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg,var(--color-secondary),var(--color-accent),var(--color-action)); transition: width .45s ease-out; }
