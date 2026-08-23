@@ -153,6 +153,7 @@ function Hero({ players, events, onOpenAdmin }) {
           <span className="board-piece piece-d">🍀</span>
           <span className="board-dot dot-1" /><span className="board-dot dot-2" /><span className="board-dot dot-3" /><span className="board-dot dot-4" />
         </div>
+        <div className="ludo-spinner" aria-hidden="true"><span>⚄</span><i /><i /><i /><i /></div>
         <div className="hero-sticker sticker-one">No mercy<br />just points</div>
         <div className="hero-sticker sticker-two">#1<br />energy</div>
       </div>
@@ -208,10 +209,10 @@ function PlayerRow({ player, index, leaderPoints, history, totalPlayers, onOpen 
       <div className="row-rank"><span>{String(index + 1).padStart(2, '0')}</span>{index < 3 && <b>{badge.icon}</b>}</div>
       <div className="row-avatar" style={{ '--accent': player.accent }}>{player.emoji}</div>
       <div className="row-name"><strong title={player.name}>{player.name}</strong><span>{badge.label}</span></div>
-      <div className="row-progress"><PlayerSparkline playerId={player.id} history={history} accent={player.accent} /><small>{leaderPoints > 0 ? `${progress}% of leader` : 'No penalties yet'}</small></div>
+      <div className="row-progress"><PlayerSparkline playerId={player.id} history={history} accent={player.accent} /><span className="leader-meter" aria-label={`${progress}% of leader's score`}><span><i style={{ width: `${Math.min(100, progress)}%` }} /></span><b>{progress}% of leader</b></span></div>
       <div className="row-points"><strong>{player.points_total}</strong><span>points</span></div>
       <div className={`row-reaction reaction-${reaction.tone}`} title={reaction.label} aria-label={`${player.name}: ${reaction.label}`}>{reaction.face}</div>
-      <span className="row-open" aria-hidden="true">View</span>
+      <span className="row-open" aria-hidden="true">Profile</span>
     </button>
   );
 }
@@ -240,7 +241,7 @@ function PlayerProfile({ player, index, players, history, onClose }) {
   return (
     <div className="profile-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section className="player-profile" role="dialog" aria-modal="true" aria-labelledby="profile-name">
-        <button className="profile-close" type="button" onClick={onClose} aria-label="Close player profile">×</button>
+        <button className="profile-close" type="button" onClick={onClose} aria-label="Close player profile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg><span>Close</span></button>
         <header className="profile-hero" style={{ '--profile-accent': player.accent }}>
           <div className="profile-avatar" aria-label={`${player.name} avatar`}><span>{player.emoji}</span><b>{reaction.face}</b></div>
           <div className="profile-identity"><p>Player profile • Rank {String(index + 1).padStart(2, '0')}</p><h2 id="profile-name">{player.name}</h2><span>{badge.icon} {badge.label}</span></div>
