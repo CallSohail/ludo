@@ -108,6 +108,11 @@ function Header({ onOpenAdmin, adminUser, online }) {
           <small>SUPER LEAGUE</small>
         </span>
       </a>
+      <nav className="main-nav" aria-label="Main navigation">
+        <a href="#top">Overview</a>
+        <a href="#leaderboard">Standings</a>
+        <span>Evry 2026</span>
+      </nav>
       <div className="header-actions">
         <span className={`live-pill ${online ? '' : 'offline'}`}><span className="live-dot" /> {online ? 'Live board' : 'Offline'}</span>
         <button className="admin-trigger" onClick={onOpenAdmin} type="button">
@@ -194,24 +199,72 @@ function Podium({ players }) {
   );
 }
 
-function PlayerRow({ player, index, leaderPoints, history, totalPlayers }) {
+function PlayerRow({ player, index, leaderPoints, history, totalPlayers, onOpen }) {
   const badge = getBadge(index, player.points_total);
   const reaction = getRankReaction(index, totalPlayers);
   const progress = leaderPoints > 0 ? Math.round((Number(player.points_total || 0) / leaderPoints) * 100) : 0;
   return (
-    <article className={`player-row ${index < 3 ? 'top-row' : ''}`}>
+    <button className={`player-row ${index < 3 ? 'top-row' : ''}`} type="button" onClick={() => onOpen(player)} aria-label={`Open ${player.name} profile, rank ${index + 1}, ${player.points_total} points`}>
       <div className="row-rank"><span>{String(index + 1).padStart(2, '0')}</span>{index < 3 && <b>{badge.icon}</b>}</div>
       <div className="row-avatar" style={{ '--accent': player.accent }}>{player.emoji}</div>
       <div className="row-name"><strong title={player.name}>{player.name}</strong><span>{badge.label}</span></div>
       <div className="row-progress"><PlayerSparkline playerId={player.id} history={history} accent={player.accent} /><small>{leaderPoints > 0 ? `${progress}% of leader` : 'No penalties yet'}</small></div>
       <div className="row-points"><strong>{player.points_total}</strong><span>points</span></div>
       <div className={`row-reaction reaction-${reaction.tone}`} title={reaction.label} aria-label={`${player.name}: ${reaction.label}`}>{reaction.face}</div>
-    </article>
+      <span className="row-open" aria-hidden="true">View</span>
+    </button>
+  );
+}
+
+function PlayerProfile({ player, index, players, history, onClose }) {
+  const moves = history.filter((event) => event.player_id === player.id).sort((a, b) => Number(b.event_number || 0) - Number(a.event_number || 0));
+  const positiveMoves = moves.filter((event) => Number(event.points) > 0);
+  const totalAdded = positiveMoves.reduce((sum, event) => sum + Number(event.points || 0), 0);
+  const average = positiveMoves.length ? (totalAdded / positiveMoves.length).toFixed(1) : '0.0';
+  const leaderPoints = Number(players[0]?.points_total || 0);
+  const gap = Math.max(0, leaderPoints - Number(player.points_total || 0));
+  const reaction = getRankReaction(index, players.length);
+  const badge = getBadge(index, player.points_total);
+  const profileCopy = index === 0
+    ? 'Currently carrying the league’s heaviest crown. Every new loss adds another chapter to the story.'
+    : gap === 0
+      ? 'Locked in a points tie at the top. One dramatic round could change everything.'
+      : `${gap} point${gap === 1 ? '' : 's'} away from the current leader. The comeback remains mathematically possible.`;
+
+  useEffect(() => {
+    const close = (event) => { if (event.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, [onClose]);
+
+  return (
+    <div className="profile-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <section className="player-profile" role="dialog" aria-modal="true" aria-labelledby="profile-name">
+        <button className="profile-close" type="button" onClick={onClose} aria-label="Close player profile">×</button>
+        <header className="profile-hero" style={{ '--profile-accent': player.accent }}>
+          <div className="profile-avatar" aria-label={`${player.name} avatar`}><span>{player.emoji}</span><b>{reaction.face}</b></div>
+          <div className="profile-identity"><p>Player profile • Rank {String(index + 1).padStart(2, '0')}</p><h2 id="profile-name">{player.name}</h2><span>{badge.icon} {badge.label}</span></div>
+          <div className="profile-total"><strong>{player.points_total}</strong><span>Penalty points</span></div>
+        </header>
+        <div className="profile-body">
+          <p className="profile-story">{profileCopy}</p>
+          <div className="profile-metrics">
+            <article><small>Current rank</small><strong>#{index + 1}</strong><span>of {players.length} players</span></article>
+            <article><small>Signed moves</small><strong>{moves.length}</strong><span>ledger entries</span></article>
+            <article><small>Average loss</small><strong>{average}</strong><span>points per move</span></article>
+          </div>
+          <section className="profile-chart-card"><div><p>Penalty progress</p><span>Cumulative signed score history</span></div><PlayerSparkline playerId={player.id} history={history} accent={player.accent} /></section>
+          <section className="profile-activity"><div className="profile-section-title"><h3>Recent activity</h3><span>{moves.length ? `${moves.length} total` : 'Quiet for now'}</span></div>{moves.length === 0 ? <div className="profile-empty">No signed score events yet. A peaceful record, for now.</div> : <div className="activity-list">{moves.slice(0, 4).map((event) => <article key={event.id || event.event_number}><span className={Number(event.points) >= 0 ? 'positive' : 'negative'}>{Number(event.points) >= 0 ? '+' : ''}{event.points}</span><div><strong>{event.reason || 'Score updated'}</strong><small>{formatDate(event.created_at, true)} • Event #{event.event_number || '—'}</small></div></article>)}</div>}</section>
+        </div>
+      </section>
+    </div>
   );
 }
 
 function Leaderboard({ players, history, loading }) {
+  const [profilePlayer, setProfilePlayer] = useState(null);
   const leaderPoints = players[0]?.points_total || 0;
+  const profileIndex = profilePlayer ? players.findIndex((player) => player.id === profilePlayer.id) : -1;
   return (
     <section className="leaderboard-section" id="leaderboard">
       <div className="section-heading">
@@ -222,9 +275,10 @@ function Leaderboard({ players, history, loading }) {
         <>
           <Podium players={players} />
           <div className="list-heading"><span>Full league table</span><span>Recognition is very serious business</span></div>
-          <div className="player-list">{players.map((player, index) => <PlayerRow key={player.id} player={player} index={index} leaderPoints={leaderPoints} history={history} totalPlayers={players.length} />)}</div>
+          <div className="player-list">{players.map((player, index) => <PlayerRow key={player.id} player={player} index={index} leaderPoints={leaderPoints} history={history} totalPlayers={players.length} onOpen={setProfilePlayer} />)}</div>
         </>
       )}
+      {profilePlayer && profileIndex >= 0 && <PlayerProfile player={players[profileIndex]} index={profileIndex} players={players} history={history} onClose={() => setProfilePlayer(null)} />}
     </section>
   );
 }
