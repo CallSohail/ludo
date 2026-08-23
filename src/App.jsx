@@ -241,7 +241,7 @@ function PlayerProfile({ player, index, players, history, onClose }) {
   return (
     <div className="profile-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section className="player-profile" role="dialog" aria-modal="true" aria-labelledby="profile-name">
-        <button className="profile-close" type="button" onClick={onClose} aria-label="Close player profile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg><span>Close</span></button>
+        <button className="profile-close" type="button" onPointerDown={(event) => { event.stopPropagation(); onClose(); }} onClick={onClose} aria-label="Close player profile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg><span>Close</span></button>
         <header className="profile-hero" style={{ '--profile-accent': player.accent }}>
           <div className="profile-avatar" aria-label={`${player.name} avatar`}><span>{player.emoji}</span><b>{reaction.face}</b></div>
           <div className="profile-identity"><p>Player profile • Rank {String(index + 1).padStart(2, '0')}</p><h2 id="profile-name">{player.name}</h2><span>{badge.icon} {badge.label}</span></div>
