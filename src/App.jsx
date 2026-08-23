@@ -259,6 +259,7 @@ function AdminPanel({ onClose, players, events, adminUser, onLogin, onRefresh, o
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [correction, setCorrection] = useState({ playerId: '', points: -1, reason: '' });
   const [manageBusy, setManageBusy] = useState(false);
+  const [activeTab, setActiveTab] = useState('score');
 
   useEffect(() => {
     if (!pointForm.playerId && players.length > 0) {
@@ -269,6 +270,12 @@ function AdminPanel({ onClose, players, events, adminUser, onLogin, onRefresh, o
   useEffect(() => {
     if (!correction.playerId && players.length > 0) setCorrection((current) => ({ ...current, playerId: players[0].id }));
   }, [players, correction.playerId]);
+
+  useEffect(() => {
+    const closeOnEscape = (event) => { if (event.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [onClose]);
 
   const handleLogin = async (form) => {
     setLoginBusy(true); setLoginError('');
@@ -339,17 +346,22 @@ function AdminPanel({ onClose, players, events, adminUser, onLogin, onRefresh, o
   const projectedTotal = Number(selectedPlayer?.points_total || 0) + Number(pointForm.points || 0);
 
   return (
-    <div className="modal-backdrop"><div className="admin-modal admin-console">
-      <div className="admin-topbar"><div><p className="eyebrow">Scorekeeper deck</p><h2>Make the board <em>move.</em></h2></div><div className="admin-top-actions"><span className="signed-in">● Signed in as {adminUser.email || 'scorekeeper'}</span><button className="close-button" type="button" onClick={onClose} aria-label="Close admin panel">×</button></div></div>
-      <div className="admin-grid">
+    <div className="modal-backdrop" role="presentation"><div className="admin-modal admin-console" role="dialog" aria-modal="true" aria-labelledby="admin-title">
+      <div className="admin-topbar"><div><p className="eyebrow">Scorekeeper deck</p><h2 id="admin-title">Make the board <em>move.</em></h2></div><div className="admin-top-actions"><span className="signed-in">● Signed in as {adminUser.email || 'scorekeeper'}</span><button className="close-button" type="button" onClick={onClose} aria-label="Close admin panel">×</button></div></div>
+      <nav className="admin-tabs" aria-label="Admin sections">
+        <button type="button" className={activeTab === 'score' ? 'active' : ''} onClick={() => setActiveTab('score')}><span>01</span><strong>Score</strong><small>Add penalties</small></button>
+        <button type="button" className={activeTab === 'players' ? 'active' : ''} onClick={() => setActiveTab('players')}><span>02</span><strong>Players</strong><small>Add and edit</small></button>
+        <button type="button" className={activeTab === 'ledger' ? 'active' : ''} onClick={() => setActiveTab('ledger')}><span>03</span><strong>Ledger</strong><small>{events.length} signed moves</small></button>
+      </nav>
+      <div className={`admin-grid admin-tab-${activeTab}`}>
         <div className="admin-forms">
-          <form className="admin-card" onSubmit={handlePlayer}>
+          {activeTab === 'players' && <form className="admin-card" onSubmit={handlePlayer}>
             <div className="card-title"><span className="card-number">01</span><div><h3>Add a player</h3><p>Give a future champion a seat at the table.</p></div></div>
             <label>Player name<input maxLength="28" value={playerForm.name} onChange={(event) => setPlayerForm({ ...playerForm, name: event.target.value })} placeholder="e.g. The Dice Whisperer" /></label>
             <div className="mini-fields"><label>Piece color<div className="color-picker">{palette.slice(0, 8).map((color) => <button key={color} type="button" className={playerForm.accent === color ? 'selected' : ''} style={{ background: color }} onClick={() => setPlayerForm({ ...playerForm, accent: color })} aria-label={`Choose ${color} player color`} />)}</div></label><label>Spirit emoji<div className="emoji-picker">{emojis.slice(0, 8).map((emoji) => <button key={emoji} type="button" className={playerForm.emoji === emoji ? 'selected' : ''} onClick={() => setPlayerForm({ ...playerForm, emoji })} aria-label={`Choose ${emoji} player emoji`}>{emoji}</button>)}</div></label></div>
             <button className="dark-button full-width" disabled={playerBusy} type="submit">{playerBusy ? 'Adding...' : 'Add to the arena'} <span>+</span></button>
-          </form>
-          <form className="admin-card points-card" onSubmit={handlePoints}>
+          </form>}
+          {activeTab === 'score' && <form className="admin-card points-card" onSubmit={handlePoints}>
             <div className="card-title"><span className="card-number">02</span><div><h3>Drop a point</h3><p>Type any whole number from 1 to 999.</p></div></div>
             <label>Who earned it?<select value={pointForm.playerId} onChange={(event) => setPointForm({ ...pointForm, playerId: event.target.value })}><option value="">Choose a player...</option>{players.map((player) => <option value={player.id} key={player.id}>{player.emoji} {player.name}, currently {player.points_total} pts</option>)}</select></label>
             <label>How many points?<input className="points-number-input" type="number" inputMode="numeric" min="1" max="999" step="1" value={pointForm.points} onChange={(event) => setPointForm({ ...pointForm, points: event.target.value })} /><div className="point-picker compact">{[1,2,3,5,9].map((point) => <button key={point} type="button" className={Number(pointForm.points) === point ? 'selected' : ''} onClick={() => setPointForm({ ...pointForm, points: point })}>+{point}</button>)}</div></label>
@@ -357,24 +369,23 @@ function AdminPanel({ onClose, players, events, adminUser, onLogin, onRefresh, o
             <label>Official-ish reason<input minLength="3" maxLength="180" value={pointForm.reason} onChange={(event) => setPointForm({ ...pointForm, reason: event.target.value })} placeholder="Lost the round" /><span className="field-help">{pointForm.reason.length}/180 characters</span></label>
             <div className="reason-shortcuts" aria-label="Quick reasons">{['Lost the round', 'Missed the cut', 'Dice betrayal'].map((reason) => <button type="button" key={reason} onClick={() => setPointForm({ ...pointForm, reason })}>{reason}</button>)}</div>
             <label className="consent-box"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} /><span><strong>Witnessed and approved.</strong><small>This point will be signed with the current time, admin identity, and previous event hash.</small></span><span className="stamp">{consent ? '✓' : '!'}</span></label>
-            {formMessage && <div className={`form-message inline-message ${formMessage.type}`} role="status">{formMessage.type === 'success' ? '✓' : '!' } {formMessage.text}</div>}
             <button className="primary-button full-width" disabled={pointBusy || players.length === 0 || !consent} type="submit">{pointBusy ? 'Signing the point...' : 'Sign and publish point'} <span>✦</span></button>
-          </form>
-          <section className="admin-card manage-card">
+          </form>}
+          {activeTab === 'players' && <section className="admin-card manage-card">
             <div className="card-title"><span className="card-number">03</span><div><h3>Manage players</h3><p>Edit profiles, archive players, or correct totals.</p></div></div>
             <div className="manage-list">{players.map((player) => <div className="manage-player" key={player.id}><span style={{ '--accent': player.accent }}>{player.emoji}</span><div><strong>{player.name}</strong><small>{player.points_total} points</small></div><button type="button" onClick={() => setEditingPlayer({ ...player })}>Edit</button><button className="danger-link" type="button" onClick={() => handleArchivePlayer(player)} disabled={manageBusy}>Archive</button></div>)}</div>
             {editingPlayer && <form className="edit-player-form" onSubmit={handleUpdatePlayer}><strong>Edit player</strong><label>Name<input maxLength="28" value={editingPlayer.name} onChange={(event) => setEditingPlayer({ ...editingPlayer, name: event.target.value })} /></label><div className="mini-fields"><label>Color<div className="color-picker">{palette.slice(0,8).map((color) => <button key={color} type="button" className={editingPlayer.accent === color ? 'selected' : ''} style={{ background: color }} onClick={() => setEditingPlayer({ ...editingPlayer, accent: color })} />)}</div></label><label>Emoji<div className="emoji-picker">{emojis.slice(0,8).map((emoji) => <button key={emoji} type="button" className={editingPlayer.emoji === emoji ? 'selected' : ''} onClick={() => setEditingPlayer({ ...editingPlayer, emoji })}>{emoji}</button>)}</div></label></div><div className="form-actions"><button type="button" onClick={() => setEditingPlayer(null)}>Cancel</button><button className="dark-button" disabled={manageBusy} type="submit">Save player</button></div></form>}
             <form className="correction-form" onSubmit={handleCorrection}><strong>Correct a score</strong><p>Use a negative number to remove incorrect points. This creates a signed adjustment instead of rewriting history.</p><select value={correction.playerId} onChange={(event) => setCorrection({ ...correction, playerId: event.target.value })}>{players.map((player) => <option value={player.id} key={player.id}>{player.name}, {player.points_total} pts</option>)}</select><input type="number" inputMode="numeric" min="-999" max="999" step="1" value={correction.points} onChange={(event) => setCorrection({ ...correction, points: event.target.value })} /><input minLength="3" maxLength="180" placeholder="Reason for correction" value={correction.reason} onChange={(event) => setCorrection({ ...correction, reason: event.target.value })} /><button className="dark-button full-width" disabled={manageBusy} type="submit">Sign correction</button></form>
-          </section>
+          </section>}
         </div>
-        <div className="ledger-card">
+        {activeTab === 'ledger' && <div className="ledger-card">
           <div className="ledger-heading"><div><p className="eyebrow">Tamper-evident-ish ledger</p><h3>Recent moves</h3></div><span className="chain-mark">⛓</span></div>
           <div className="ledger-list">{events.length === 0 ? <div className="ledger-empty">No signed moves yet.<br />The first point is waiting for its dramatic entrance.</div> : events.slice(0, 10).map((event) => { const player = players.find((item) => item.id === event.player_id); return <div className="ledger-row" key={event.id}><span className="ledger-points">+{event.points}</span><div><strong>{player?.name || 'Unknown player'}</strong><p>{event.reason}</p><small>{formatDate(event.created_at, true)} • #{event.event_number || '—'}</small></div><span className="ledger-hash" title={event.event_hash}>✓ {event.event_hash?.slice(0, 7)}</span></div>; })}</div>
           <div className="ledger-footer"><span>Chain status</span><strong><i /> Connected</strong></div>
           <button className="logout-button" type="button" onClick={onLogout}>Lock the scorekeeper deck <span>↗</span></button>
-        </div>
+        </div>}
       </div>
-      {formMessage && <div className={`form-message desktop-message ${formMessage.type}`} role="status">{formMessage.type === 'success' ? '✓' : '!' } {formMessage.text}</div>}
+      {formMessage && <div className={`admin-toast form-message ${formMessage.type}`} role="status"><span>{formMessage.type === 'success' ? '✓' : '!'}</span><p>{formMessage.text}</p><button type="button" onClick={() => setFormMessage(null)} aria-label="Dismiss message">×</button></div>}
     </div></div>
   );
 }
