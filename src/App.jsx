@@ -57,10 +57,28 @@ function getRankReaction(index, total) {
 function PlayerSparkline({ playerId, history, accent }) {
   const moves = history.filter((event) => event.player_id === playerId).sort((a, b) => Number(a.event_number) - Number(b.event_number));
   let total = 0;
-  const values = [0, ...moves.map((event) => (total = Math.max(0, total + Number(event.points || 0))))].slice(-12);
+  const values = [0, ...moves.map((event) => (total = Math.max(0, total + Number(event.points || 0))))].slice(-14);
   const max = Math.max(1, ...values);
-  const points = values.map((value, index) => `${(index / Math.max(1, values.length - 1)) * 100},${32 - (value / max) * 28}`).join(' ');
-  return <svg className="sparkline" viewBox="0 0 100 36" role="img" aria-label={`${moves.length} recorded score moves`} preserveAspectRatio="none"><path d="M0 32 H100" /><polyline points={points} style={{ stroke: accent }} /><circle cx="100" cy={32 - (values.at(-1) / max) * 28} r="2.6" style={{ fill: accent }} /></svg>;
+  const x = (index) => 7 + (index / Math.max(1, values.length - 1)) * 86;
+  const y = (value) => 38 - (value / max) * 30;
+  const points = values.map((value, index) => `${x(index)},${y(value)}`).join(' ');
+  const area = `7,38 ${points} 93,38`;
+  const latest = values.at(-1) || 0;
+  const previous = values.at(-2) || 0;
+  const change = latest - previous;
+
+  return (
+    <div className="progress-chart" style={{ '--chart-accent': accent }}>
+      <div className="chart-meta"><span>{moves.length ? `${moves.length} signed move${moves.length === 1 ? '' : 's'}` : 'No moves yet'}</span><b>{change > 0 ? `+${change}` : change || '—'} latest</b></div>
+      <svg className="sparkline" viewBox="0 0 100 44" role="img" aria-label={`${moves.length} recorded score moves, current total ${latest}`} preserveAspectRatio="none">
+        <defs><linearGradient id={`chart-${playerId}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={accent} stopOpacity=".3" /><stop offset="1" stopColor={accent} stopOpacity=".02" /></linearGradient></defs>
+        <path className="chart-grid" d="M7 8 H93 M7 23 H93 M7 38 H93" />
+        <polygon points={area} fill={`url(#chart-${playerId})`} />
+        <polyline className="chart-line" points={points} style={{ stroke: accent }} />
+        {values.map((value, index) => <circle className="chart-point" key={`${index}-${value}`} cx={x(index)} cy={y(value)} r={index === values.length - 1 ? 2.7 : 1.25} style={{ fill: accent }} />)}
+      </svg>
+    </div>
+  );
 }
 
 function Fireworks({ burstKey }) {
