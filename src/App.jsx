@@ -444,14 +444,14 @@ function AdminPanel({ onClose, players, events, adminUser, onLogin, onRefresh, o
     finally { setManageBusy(false); }
   };
 
-  if (!adminUser) return <div className="modal-backdrop"><div className="admin-modal login-modal"><button className="close-button" type="button" onClick={onClose} aria-label="Close admin panel">×</button><LoginPanel onLogin={handleLogin} busy={loginBusy} error={loginError} /></div></div>;
+  if (!adminUser) return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div className="admin-modal login-modal"><button className="close-button" type="button" onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); onClose(); }} onClick={onClose} aria-label="Close admin panel">×</button><LoginPanel onLogin={handleLogin} busy={loginBusy} error={loginError} /></div></div>;
 
   const selectedPlayer = players.find((player) => player.id === pointForm.playerId);
   const projectedTotal = Number(selectedPlayer?.points_total || 0) + Number(pointForm.points || 0);
 
   return (
-    <div className="modal-backdrop" role="presentation"><div className="admin-modal admin-console" role="dialog" aria-modal="true" aria-labelledby="admin-title">
-      <div className="admin-topbar"><div><p className="eyebrow">Scorekeeper deck</p><h2 id="admin-title">Make the board <em>move.</em></h2></div><div className="admin-top-actions"><span className="signed-in">● Signed in as {adminUser.email || 'scorekeeper'}</span><button className="close-button" type="button" onClick={onClose} aria-label="Close admin panel">×</button></div></div>
+    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div className="admin-modal admin-console" role="dialog" aria-modal="true" aria-labelledby="admin-title">
+      <div className="admin-topbar"><div><p className="eyebrow">Scorekeeper deck</p><h2 id="admin-title">Make the board <em>move.</em></h2></div><div className="admin-top-actions"><span className="signed-in">● Signed in as {adminUser.email || 'scorekeeper'}</span><button className="close-button admin-close" type="button" onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); onClose(); }} onClick={onClose} aria-label="Close admin panel" title="Close admin panel">×</button></div></div>
       <nav className="admin-tabs" aria-label="Admin sections">
         <button type="button" className={activeTab === 'score' ? 'active' : ''} onClick={() => setActiveTab('score')}><span>01</span><strong>Score</strong><small>Add penalties</small></button>
         <button type="button" className={activeTab === 'players' ? 'active' : ''} onClick={() => setActiveTab('players')}><span>02</span><strong>Players</strong><small>Add and edit</small></button>
