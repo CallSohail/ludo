@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { config, emojis, isSupabaseConfigured, palette, recognition } from './config';
 import {
   addPoints,
@@ -81,23 +82,6 @@ function PlayerSparkline({ playerId, history, accent }) {
   );
 }
 
-function Fireworks({ burstKey }) {
-  const sparks = useMemo(() => Array.from({ length: 34 }, (_, index) => ({
-    id: `${burstKey}-${index}`,
-    left: `${12 + ((index * 37) % 76)}%`,
-    top: `${10 + ((index * 61) % 54)}%`,
-    hue: ['#ffca3a', '#ff5b3d', '#63e6be', '#8f7bff', '#fff8dc'][index % 5],
-    delay: `${(index % 9) * 0.08}s`,
-    distance: `${35 + (index % 5) * 10}px`,
-    angle: `${index * 31}deg`,
-  })), [burstKey]);
-  return (
-    <div className="fireworks" aria-hidden="true" key={burstKey}>
-      {sparks.map((spark) => <i key={spark.id} className="spark" style={{ '--left': spark.left, '--top': spark.top, '--hue': spark.hue, '--delay': spark.delay, '--distance': spark.distance, '--angle': spark.angle }} />)}
-    </div>
-  );
-}
-
 function Header({ onOpenAdmin, adminUser, online }) {
   return (
     <header className="site-header">
@@ -175,17 +159,17 @@ function LeagueSnapshot({ players, events }) {
   );
 }
 
-function Podium({ players }) {
-  const slots = [1, 0, 2];
+function Podium({ players, onOpen }) {
+  const slots = [0, 1, 2];
   return (
-    <div className="podium" aria-label="Top three players">
+    <ol className="podium" aria-label="Top three players">
       {slots.map((index) => {
         const player = players[index];
-        if (!player) return <div className={`podium-card empty podium-${index + 1}`} key={`empty-${index}`}><span>?</span><small>waiting for<br />a challenger</small></div>;
+        if (!player) return <li className={`podium-card empty podium-${index + 1}`} key={`empty-${index}`}><span>?</span><small>waiting for<br />a challenger</small></li>;
         const badge = getBadge(index, player.points_total);
         const reaction = getRankReaction(index, players.length);
         return (
-          <article className={`podium-card podium-${index + 1}`} key={player.id}>
+          <li className={`podium-card podium-${index + 1}`} key={player.id} style={{ '--accent': player.accent }}>
             <div className="podium-rank">{index === 0 ? '01' : index === 1 ? '02' : '03'}</div>
             <div className={`podium-avatar reaction-${reaction.tone}`} style={{ '--accent': player.accent }}><span>{player.emoji}</span><b>{reaction.face}</b></div>
             <div className="podium-medal">{badge.icon}</div>
@@ -193,10 +177,11 @@ function Podium({ players }) {
             <span className="badge-label">{badge.label}</span>
             <strong className="podium-score">{player.points_total}<small> pts</small></strong>
             {index === 0 && <span className="crown">♛</span>}
-          </article>
+            <button type="button" className="podium-open" onClick={() => onOpen(player)} aria-label={`Open profile for ${player.name}`}>View profile <span>→</span></button>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 }
 
@@ -217,7 +202,9 @@ function PlayerRow({ player, index, leaderPoints, history, totalPlayers, onOpen 
   );
 }
 
-function PlayerProfile({ player, index, players, history, onClose }) {
+function PlayerProfile({ player, index, players, history, onClose, returnFocusRef }) {
+  const dialogRef = useRef(null);
+  const closeRef = useRef(null);
   const moves = history.filter((event) => event.player_id === player.id).sort((a, b) => Number(b.event_number || 0) - Number(a.event_number || 0));
   const positiveMoves = moves.filter((event) => Number(event.points) > 0);
   const totalAdded = positiveMoves.reduce((sum, event) => sum + Number(event.points || 0), 0);
@@ -226,22 +213,33 @@ function PlayerProfile({ player, index, players, history, onClose }) {
   const gap = Math.max(0, leaderPoints - Number(player.points_total || 0));
   const reaction = getRankReaction(index, players.length);
   const badge = getBadge(index, player.points_total);
-  const profileCopy = index === 0
+  const profileCopy = moves.length === 0
+    ? 'Hasn’t signed a single loss yet. Untested, or just very good at avoiding the table.'
+    : index === 0
     ? 'Currently carrying the league’s heaviest crown. Every new loss adds another chapter to the story.'
     : gap === 0
       ? 'Locked in a points tie at the top. One dramatic round could change everything.'
       : `${gap} point${gap === 1 ? '' : 's'} away from the current leader. The comeback remains mathematically possible.`;
 
   useEffect(() => {
-    const close = (event) => { if (event.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', close);
-    return () => window.removeEventListener('keydown', close);
-  }, [onClose]);
+    closeRef.current?.focus();
+    const handleKey = (event) => {
+      if (event.key === 'Escape') onClose();
+      if (event.key !== 'Tab' || !dialogRef.current) return;
+      const focusable = [...dialogRef.current.querySelectorAll('button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter((node) => !node.disabled);
+      if (!focusable.length) return;
+      const first = focusable[0]; const last = focusable.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => { window.removeEventListener('keydown', handleKey); returnFocusRef?.current?.focus(); };
+  }, [onClose, returnFocusRef]);
 
-  return (
+  return createPortal(
     <div className="profile-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section className="player-profile" role="dialog" aria-modal="true" aria-labelledby="profile-name">
-        <button className="profile-close" type="button" onPointerDown={(event) => { event.stopPropagation(); onClose(); }} onClick={onClose} aria-label="Close player profile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg><span>Close</span></button>
+      <section ref={dialogRef} className="player-profile" role="dialog" aria-modal="true" aria-labelledby="profile-name">
+        <button ref={closeRef} className="profile-close" type="button" onClick={onClose} aria-label="Close player profile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg><span>Close</span></button>
         <header className="profile-hero" style={{ '--profile-accent': player.accent }}>
           <div className="profile-avatar" aria-label={`${player.name} avatar`}><span>{player.emoji}</span><b>{reaction.face}</b></div>
           <div className="profile-identity"><p>Player profile • Rank {String(index + 1).padStart(2, '0')}</p><h2 id="profile-name">{player.name}</h2><span>{badge.icon} {badge.label}</span></div>
@@ -251,19 +249,20 @@ function PlayerProfile({ player, index, players, history, onClose }) {
           <p className="profile-story">{profileCopy}</p>
           <div className="profile-metrics">
             <article><small>Current rank</small><strong>#{index + 1}</strong><span>of {players.length} players</span></article>
-            <article><small>Signed moves</small><strong>{moves.length}</strong><span>ledger entries</span></article>
-            <article><small>Average loss</small><strong>{average}</strong><span>points per move</span></article>
+            <article><small>Signed moves</small><strong>{moves.length}</strong><span>{moves.length === 1 ? 'ledger entry' : 'ledger entries'}</span></article>
+            <article><small>Avg per move</small><strong>{average}</strong><span>points per signed move</span></article>
           </div>
           <section className="profile-chart-card"><div><p>Penalty progress</p><span>Cumulative signed score history</span></div><PlayerSparkline playerId={player.id} history={history} accent={player.accent} /></section>
           <section className="profile-activity"><div className="profile-section-title"><h3>Recent activity</h3><span>{moves.length ? `${moves.length} total` : 'Quiet for now'}</span></div>{moves.length === 0 ? <div className="profile-empty">No signed score events yet. A peaceful record, for now.</div> : <div className="activity-list">{moves.slice(0, 4).map((event) => <article key={event.id || event.event_number}><span className={Number(event.points) >= 0 ? 'positive' : 'negative'}>{Number(event.points) >= 0 ? '+' : ''}{event.points}</span><div><strong>{event.reason || 'Score updated'}</strong><small>{formatDate(event.created_at, true)} • Event #{event.event_number || '—'}</small></div></article>)}</div>}</section>
         </div>
       </section>
-    </div>
+    </div>, document.body
   );
 }
 
 function Leaderboard({ players, history, loading }) {
   const [profilePlayer, setProfilePlayer] = useState(null);
+  const triggerRef = useRef(null);
   const leaderPoints = players[0]?.points_total || 0;
   const profileIndex = profilePlayer ? players.findIndex((player) => player.id === profilePlayer.id) : -1;
   return (
@@ -274,12 +273,12 @@ function Leaderboard({ players, history, loading }) {
       </div>
       {loading ? <div className="loading-board"><span className="spinner" />Rolling the scoreboard...</div> : players.length === 0 ? <div className="empty-board"><span>🎲</span><h3>The board is suspiciously empty.</h3><p>Open the admin deck and add your first player.</p></div> : (
         <>
-          <Podium players={players} />
-          <div className="list-heading"><span>Full league table</span><span>Recognition is very serious business</span></div>
-          <div className="player-list">{players.map((player, index) => <PlayerRow key={player.id} player={player} index={index} leaderPoints={leaderPoints} history={history} totalPlayers={players.length} onOpen={setProfilePlayer} />)}</div>
+          <Podium players={players} onOpen={(player) => { triggerRef.current = document.activeElement; setProfilePlayer(player); }} />
+          <div className="list-heading"><h3 id="table-heading">Full league table</h3><span>Higher penalty points rank first</span></div>
+          <ol className="player-list" aria-labelledby="table-heading">{players.map((player, index) => <li key={player.id}><PlayerRow player={player} index={index} leaderPoints={leaderPoints} history={history} totalPlayers={players.length} onOpen={(selected) => { triggerRef.current = document.activeElement; setProfilePlayer(selected); }} /></li>)}</ol>
         </>
       )}
-      {profilePlayer && profileIndex >= 0 && <PlayerProfile player={players[profileIndex]} index={profileIndex} players={players} history={history} onClose={() => setProfilePlayer(null)} />}
+      {profilePlayer && profileIndex >= 0 && <PlayerProfile player={players[profileIndex]} index={profileIndex} players={players} history={history} onClose={() => setProfilePlayer(null)} returnFocusRef={triggerRef} />}
     </section>
   );
 }
@@ -539,7 +538,6 @@ export default function App() {
   return (
     <div className="app-shell">
       <a className="skip-link" href="#leaderboard">Skip to leaderboard</a>
-      <Fireworks burstKey={burstKey} />
       <Header onOpenAdmin={openAdmin} adminUser={adminUser} online={online} />
       <main>
         <Hero players={players} events={events} onOpenAdmin={openAdmin} />
@@ -550,7 +548,7 @@ export default function App() {
         {error && <div className="global-error" role="alert">⚠️ {error} <button onClick={refresh} type="button">Try again</button></div>}
       </main>
       <Footer onOpenAdmin={openAdmin} eventCount={events.length} />
-      {adminOpen && <AdminPanel onClose={() => setAdminOpen(false)} players={players} events={events} adminUser={adminUser} onLogin={handleLogin} onRefresh={refresh} onBurst={() => setBurstKey((key) => key + 1)} onLogout={handleLogout} />}
+      {adminOpen && createPortal(<AdminPanel onClose={() => setAdminOpen(false)} players={players} events={events} adminUser={adminUser} onLogin={handleLogin} onRefresh={refresh} onBurst={() => setBurstKey((key) => key + 1)} onLogout={handleLogout} />, document.body)}
     </div>
   );
 }
