@@ -3,8 +3,6 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { config } from './config';
 import './styles.css';
-import './redesign.css';
-import './motion.css';
 
 if (config.sohailFontUrl && !config.sohailFontUrl.includes('YOUR-USERNAME')) {
   const fontStyle = document.createElement('style');
