@@ -151,12 +151,12 @@ function Hero({ players, events, onOpenAdmin }) {
   return (
     <section className="hero" id="top">
       <div className="hero-copy">
-        <p className="eyebrow"><span>EVRY</span> 2026 season • Live standings</p>
-        <h1>Lose a round.<br /><em>Earn the drama.</em></h1>
-        <p className="hero-text">The official home of friendly defeats. Every loss adds penalty points, every point leaves a signed trace, and the highest score earns the crown nobody asked for.</p>
+        <p className="eyebrow"><span>EVRY</span> 2026 season • Signal ledger</p>
+        <h1>Lose the round.<br /><em>Keep the record.</em></h1>
+        <p className="hero-text">A live record of friendly defeats. Every loss leaves a signed point, every point changes the table, and the crown goes to whoever carries the most drama.</p>
         <div className="hero-buttons">
-          <a className="primary-button" href="#leaderboard">See the leaderboard <span>↓</span></a>
-          <button className="text-button" type="button" onClick={onOpenAdmin}>I am the scorekeeper <span>↗</span></button>
+          <a className="primary-button" href="#leaderboard">Read the standings <span>↓</span></a>
+          <button className="text-button" type="button" onClick={onOpenAdmin}>Open the scorekeeper deck <span>↗</span></button>
         </div>
         <div className="hero-stats">
           <div><strong>{players.length}</strong><span>players in<br />the arena</span></div>
@@ -165,18 +165,65 @@ function Hero({ players, events, onOpenAdmin }) {
         </div>
       </div>
       <div className="hero-art" aria-label={leader ? `${leader.name} is currently leading` : 'The board is waiting for its first player'}>
-        <div className="burst-label">Current headline<br /><strong>{leader ? `${leader.name} leads` : 'Seats available'}</strong> {leader?.emoji || '🎲'}</div>
-        <div className="game-board">
-          <div className="board-center"><span>⚡</span><small>LUDO<br />LEAGUE</small></div>
-          <span className="board-piece piece-a">{leader?.emoji || '🎲'}</span>
-          <span className="board-piece piece-b">🕺</span>
-          <span className="board-piece piece-c">🔥</span>
-          <span className="board-piece piece-d">🍀</span>
-          <span className="board-dot dot-1" /><span className="board-dot dot-2" /><span className="board-dot dot-3" /><span className="board-dot dot-4" />
+        <div className="signal-panel">
+          <div className="signal-panel-top"><span>SCORE FLOOR / LIVE</span><i aria-hidden="true" /></div>
+          <div className="signal-chart" aria-hidden="true">
+            <svg viewBox="0 0 420 120" preserveAspectRatio="none"><path className="signal-grid" d="M0 20H420M0 60H420M0 100H420" /><polyline points="0,73 24,61 42,84 66,54 91,66 118,32 144,76 169,62 198,71 225,44 251,83 279,58 305,68 334,40 362,64 390,52 420,57" /></svg>
+          </div>
+          <div className="signal-bars" aria-hidden="true"><i style={{ '--bar': '74%' }} /><i style={{ '--bar': '46%' }} /><i style={{ '--bar': '88%' }} /><i style={{ '--bar': '61%' }} /><i style={{ '--bar': '95%' }} /><i style={{ '--bar': '54%' }} /><i style={{ '--bar': '78%' }} /><i style={{ '--bar': '68%' }} /><i style={{ '--bar': '86%' }} /></div>
+          <div className="signal-readouts">
+            <div><span>PLAYERS</span><strong>{String(players.length).padStart(2, '0')}</strong></div>
+            <div><span>POINTS ON RECORD</span><strong>{String(totalPoints).padStart(2, '0')}</strong></div>
+            <div><span>OPEN CROWN</span><strong>{leader ? leader.name.slice(0, 8).toUpperCase() : 'WAITING'}</strong></div>
+          </div>
+          <p>Live readings from the board, refreshed as points land.</p>
         </div>
+        <div className="hero-player-token"><PlayerToken player={leader} size="sm" /><span>{leader ? `${leader.name} leads` : 'Seats available'}</span></div>
         <div className="ludo-spinner" aria-hidden="true"><span>⚄</span><i /><i /><i /><i /></div>
         <div className="hero-sticker sticker-one">No mercy<br />just points</div>
-        <div className="hero-sticker sticker-two">#1<br />energy</div>
+        <div className="hero-sticker sticker-two">{leader ? `#1 ${leader.name}` : '#1 energy'}<br />on record</div>
+      </div>
+    </section>
+  );
+}
+
+function SeasonScenes({ players, events }) {
+  const [active, setActive] = useState(0);
+  const stepRefs = useRef([]);
+  const totalPoints = players.reduce((sum, player) => sum + Number(player.points_total || 0), 0);
+  const leader = players[0];
+  const scenes = [
+    { index: '01', value: players.length, title: 'Players on the board', detail: 'Every name gets a place in the record, even before the first point arrives.' },
+    { index: '02', value: totalPoints, title: 'Points under review', detail: 'Every signed move changes the pressure. Nothing is sampled or skipped.' },
+    { index: '03', value: leader ? leader.points_total : '—', title: leader ? `${leader.name} holds the crown` : 'The crown is waiting', detail: leader ? 'The table has a leader. The next round can still change the story.' : 'The first point will give the league its opening headline.' },
+  ];
+
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (visible) setActive(Number(visible.target.dataset.scene));
+    }, { rootMargin: '-38% 0px -38% 0px', threshold: [0, .25, .5, .75, 1] });
+    stepRefs.current.forEach((node) => node && observer.observe(node));
+    return () => observer.disconnect();
+  }, [scenes.length]);
+
+  const current = scenes[active] || scenes[0];
+  return (
+    <section className="season-scenes" aria-label="League signal floor">
+      <div className="scene-sticky">
+        <div className="scene-corner scene-corner-top" aria-hidden="true" />
+        <div className="scene-kicker">THE QUIET SCORE</div>
+        <div className="scene-display" key={`${active}-${current.value}`}>
+          <strong>{current.value}</strong>
+          <h2>{current.title}</h2>
+          <p>{current.detail}</p>
+        </div>
+        <div className="scene-progress" aria-hidden="true"><span style={{ width: `${((active + 1) / scenes.length) * 100}%` }} /></div>
+        <span className="scene-counter">{current.index} / 03</span>
+        <div className="scene-corner scene-corner-bottom" aria-hidden="true" />
+      </div>
+      <div className="scene-steps">
+        {scenes.map((scene, index) => <div className="scene-step" data-scene={index} ref={(node) => { stepRefs.current[index] = node; }} key={scene.index} aria-hidden="true" />)}
       </div>
     </section>
   );
@@ -597,8 +644,9 @@ export default function App() {
       <Header onOpenAdmin={openAdmin} adminUser={adminUser} online={online} darkMode={darkMode} onToggleTheme={() => setDarkMode((value) => !value)} />
       <main>
         <Hero players={players} events={events} onOpenAdmin={openAdmin} />
+        <SeasonScenes players={players} events={events} />
         <LeagueSnapshot players={players} events={events} />
-        <section className="ticker" aria-label="League status"><span className="ticker-label">NEWS FLASH</span><span className="ticker-copy">{leader ? `${leader.name} is currently holding the crown with ${leader.points_total} point${leader.points_total === 1 ? '' : 's'}.` : 'The dice are warming up. The first point is still available.'}</span><span className="ticker-time">{clock.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span></section>
+        <section className="ticker" aria-label="League status"><span className="ticker-label">SIGNAL LEDGER / LIVE</span><span className="ticker-copy">{leader ? `${leader.name} is currently holding the crown with ${leader.points_total} point${leader.points_total === 1 ? '' : 's'}.` : 'The dice are warming up. The first point is still available.'}</span><span className="ticker-time">{clock.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span></section>
         <Leaderboard players={players} history={history} loading={loading} />
         {!online && <div className="offline-banner" role="status">You are offline. The last loaded scores are still visible, but new updates will wait for a connection.</div>}
         {error && <div className="global-error" role="alert">⚠️ {error} <button onClick={refresh} type="button">Try again</button></div>}
