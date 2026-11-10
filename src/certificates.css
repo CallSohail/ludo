@@ -1,0 +1,514 @@
+.league-crown {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  border: 1px solid #76613c;
+  border-radius: 12px;
+  background: var(--paper-light);
+  overflow: hidden;
+}
+.league-crown::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -40%;
+  width: 35%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #e1c58b, transparent);
+  animation: crown-shine 7s ease-in-out infinite;
+  pointer-events: none;
+}
+.league-crown-seal {
+  width: 52px;
+  height: 52px;
+  border: 1px solid #76613c;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #dec18b;
+  background: var(--paper);
+}
+.league-crown > div:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.league-crown > div > span {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+.league-crown strong {
+  font-size: 18px;
+  font-weight: 500;
+  display: block;
+  overflow-wrap: anywhere;
+}
+.league-crown small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.7;
+  margin-top: 4px;
+}
+.league-crown-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.league-crown-actions .crown-action {
+  color: #dec18b;
+}
+.league-crown-actions .dash-button {
+  font-size: 11px;
+}
+:root[data-theme="paper"] .league-crown-seal,
+:root[data-theme="paper"] .league-crown-actions .crown-action {
+  color: #72531e;
+}
+.dash-standing:first-child .dash-rank.first {
+  color: var(--chart-gold);
+}
+.certificates-workspace {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.certificate-roster {
+  position: sticky;
+  top: 96px;
+}
+.certificate-search {
+  margin: 20px;
+}
+.certificate-player-list {
+  max-height: 640px;
+  overflow: auto;
+  padding: 0 12px;
+}
+.certificate-player {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  padding: 14px 8px;
+  min-height: 68px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+}
+.certificate-player:hover {
+  background: var(--paper-deep);
+}
+.certificate-player[aria-pressed="true"] {
+  background: var(--paper-deep);
+}
+.certificate-player > span:first-child {
+  color: var(--muted);
+  font-size: 11px;
+  width: 24px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.certificate-player.crown-player > span:first-child {
+  color: var(--chart-gold);
+}
+.certificate-player > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.certificate-player strong {
+  font-size: 12px;
+  font-weight: 500;
+  display: block;
+  overflow-wrap: anywhere;
+}
+.certificate-player small {
+  font-size: 10px;
+  color: var(--muted);
+  display: block;
+  line-height: 1.6;
+  margin-top: 4px;
+}
+.certificate-player > b {
+  font-size: 17px;
+  font-weight: 500;
+  flex-shrink: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.certificate-player > b small {
+  font-size: 9px;
+}
+.certificate-local-note {
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--muted);
+  padding: 16px 20px;
+  border-top: 1px solid var(--line);
+}
+.certificate-detail {
+  min-width: 0;
+  display: grid;
+  gap: 20px;
+}
+.certificate-edition {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--chart-gold);
+  white-space: nowrap;
+}
+.certificate-paper-wrap {
+  position: relative;
+  margin: 20px;
+  background: #f7f3e9;
+  aspect-ratio: 1400/990;
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px #0002;
+}
+.certificate-paper {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+.certificate-paper.is-ready {
+  opacity: 1;
+}
+.certificate-loading,
+.certificate-render-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  color: #183c31;
+  font-size: 13px;
+}
+.certificate-render-error p {
+  font-size: 12px;
+  max-width: 45ch;
+}
+.certificate-loading svg {
+  animation: spin 1.5s linear infinite;
+}
+.certificate-downloads {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 0 20px 20px;
+}
+.certificate-downloads > p {
+  font-size: 11px;
+  color: var(--ink);
+  line-height: 1.7;
+}
+.certificate-downloads > p > span {
+  color: var(--muted);
+}
+.certificate-downloads > div {
+  display: flex;
+  gap: 8px;
+}
+.certificate-downloads .dash-button {
+  font-size: 11px;
+}
+.certificate-inline-error {
+  padding: 12px 20px;
+  color: var(--pink);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.certificate-commendations {
+  padding: 24px 20px;
+}
+.certificate-commendations > h3 {
+  font-size: 16px;
+}
+.certificate-commendations > ul {
+  padding: 0 0 0 20px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.9;
+  margin: 16px 0 24px;
+}
+.certificate-commendations li {
+  padding-left: 4px;
+  margin-top: 6px;
+}
+.certificate-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin: 0 0 24px;
+  padding: 20px 0;
+  border-block: 1px solid var(--line);
+}
+.certificate-facts dt {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.certificate-facts dd {
+  margin: 0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.certificate-message-label {
+  font-size: 13px;
+  color: var(--ink);
+}
+.certificate-message-label textarea {
+  width: 100%;
+  min-height: 124px;
+  resize: vertical;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font: 13px/1.7 var(--body);
+  caret-color: var(--green);
+}
+.certificate-message-label textarea:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+.certificate-message-label textarea::placeholder {
+  color: var(--muted);
+}
+.certificate-message-label > span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.certificate-message-actions {
+  display: flex;
+  gap: 16px;
+  align-items: start;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+.certificate-message-actions > p {
+  font-size: 11px;
+  color: var(--muted);
+  max-width: 62ch;
+  line-height: 1.7;
+}
+.certificate-message-actions .dash-button {
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.certificate-disclosure {
+  font-size: 11px;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+  margin-top: 24px;
+  padding-top: 20px;
+  line-height: 1.8;
+}
+.profile-certificate-link {
+  margin-top: 16px;
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  width: max-content;
+  min-height: 40px;
+}
+.profile-certificate-link:hover {
+  color: var(--ink);
+}
+@keyframes crown-shine {
+  0%,
+  45% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  85%,
+  100% {
+    transform: translateX(550%);
+    opacity: 0;
+  }
+}
+@media (max-width: 1200px) {
+  .certificates-workspace {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+  .certificate-downloads {
+    align-items: start;
+    flex-direction: column;
+  }
+  .certificate-downloads > div {
+    width: 100%;
+  }
+  .certificate-downloads .dash-button {
+    flex: 1;
+  }
+  .league-crown-actions .dash-button:first-child {
+    display: none;
+  }
+}
+@media (max-width: 1000px) {
+  .certificates-workspace {
+    grid-template-columns: 1fr;
+  }
+  .certificate-roster {
+    position: static;
+  }
+  .certificate-player-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-height: 240px;
+    gap: 0 12px;
+  }
+  .certificate-local-note {
+    font-size: 10px;
+  }
+  .certificate-roster .dash-panel-head {
+    padding-top: 16px;
+  }
+  .certificate-search {
+    margin: 16px 20px;
+  }
+  .certificate-paper-wrap {
+    margin: 20px;
+  }
+  .certificate-downloads {
+    flex-direction: row;
+    align-items: center;
+  }
+  .certificate-downloads > div {
+    width: auto;
+  }
+  .certificate-downloads .dash-button {
+    flex: auto;
+  }
+}
+@media (max-width: 760px) {
+  .league-crown {
+    padding: 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .league-crown-seal {
+    width: 44px;
+    height: 44px;
+  }
+  .league-crown strong {
+    font-size: 16px;
+  }
+  .league-crown small {
+    font-size: 10px;
+  }
+  .league-crown-actions {
+    width: 100%;
+  }
+  .league-crown-actions .dash-button {
+    flex: 1;
+    min-height: 36px;
+  }
+  .league-crown-actions .dash-button:first-child {
+    display: flex;
+  }
+  .certificate-player-list {
+    grid-template-columns: 1fr 1fr;
+    gap: 0 8px;
+    padding: 0 8px;
+    max-height: 248px;
+  }
+  .certificate-player {
+    gap: 8px;
+    padding: 12px 6px;
+  }
+  .certificate-player > span:first-child {
+    width: 18px;
+  }
+  .certificate-player strong {
+    font-size: 11px;
+  }
+  .certificate-player small {
+    font-size: 9px;
+  }
+  .certificate-player > b {
+    font-size: 15px;
+  }
+  .certificate-paper-wrap {
+    margin: 16px;
+  }
+  .certificate-edition {
+    font-size: 10px;
+    gap: 4px;
+  }
+  .certificate-downloads {
+    padding: 0 16px 16px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .certificate-downloads > div {
+    width: 100%;
+  }
+  .certificate-downloads .dash-button {
+    flex: 1;
+    font-size: 11px;
+    padding-inline: 10px;
+    min-height: 44px;
+  }
+  .certificate-facts {
+    gap: 16px;
+  }
+  .certificate-commendations {
+    padding: 20px 16px;
+  }
+  .certificate-commendations > ul {
+    font-size: 12px;
+  }
+  .certificate-message-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .certificate-message-actions .dash-button {
+    align-self: flex-end;
+  }
+  .certificate-local-note {
+    padding-inline: 16px;
+  }
+  .certificate-facts dd {
+    font-size: 12px;
+  }
+  .certificate-commendations > h3 {
+    font-size: 15px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .league-crown::before,
+  .certificate-loading svg {
+    animation: none !important;
+  }
+  .league-crown::before {
+    opacity: 0;
+  }
+}
+.certificate-download-status:not(:empty) {
+  padding: 0 20px 20px;
+  color: var(--green);
+  font-size: 12px;
+}

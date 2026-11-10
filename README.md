@@ -28,7 +28,7 @@ npm test
 npm run build
 ```
 
-Tests include eight analytics cases, five production-configuration cases, and ten browser cases: awards, corrections, consent, search, ranking, date filters, comparison, pagination, CSV downloads, dialog keyboard behavior, missing profiles, empty/corrupted/blocked storage, long names, large scores, mobile/tablet layouts, themes, offline status, and automated WCAG AA checks. Analytics cases cover signed changes, real timestamps, daylight-saving boundaries, deduplication, date ranges, empty data and CSV formula protection. Tests explicitly disable production Supabase variables.
+Tests cover analytics, production configuration and browser flows: awards, corrections, consent, search, ranking, date filters, comparison, pagination, CSV downloads, dialog keyboard behavior, missing profiles, empty/corrupted/blocked storage, long names, large scores, mobile/tablet layouts, themes, offline status, and automated WCAG AA checks. Analytics cases cover signed changes, real timestamps, daylight-saving boundaries, deduplication, date ranges, empty data and CSV formula protection. Tests explicitly disable production Supabase variables.
 
 Fonts are bundled locally. Charts and database libraries are split into cacheable bundles.
 
@@ -51,3 +51,13 @@ Keep RLS and the admin-only RPC permission checks enabled. Public history must e
 Current standings are all-time totals. Charts show available recorded changes within the selected period, starting at zero for that period. They can differ from current totals when earlier entries or opening balances are absent. Daily bars omit days without available entries and say so. Corrections are negative values and do not inflate the number or average of positive awards. Equal totals use player creation order.
 
 See [DESIGN.md](./DESIGN.md) and [PRODUCT.md](./PRODUCT.md) for the design and product contracts. Design guidance includes [Unslop](https://github.com/heydamir/unslop) by Damir Sokolovsky ([@heydamir](https://x.com/heydamir)), CC BY 4.0; [Anthropic frontend-design](https://github.com/anthropics/skills/tree/main/skills/frontend-design); [Impeccable](https://github.com/pbakaus/impeccable); and [Grafana dashboard guidance](https://grafana.com/docs/grafana/latest/visualizations/dashboards/build-dashboards/best-practices/).
+
+## Player certificates
+
+Open **Certificates** in the navigation, or **View player certificate** on a profile. Every active player has an individual certificate based on current all-time position and available history. The current #1 has a gold crown edition; other positions have matching podium or league editions. The #1 spotlight follows the current table and respects reduced-motion preferences.
+
+Review the automatic commendations, add an optional personal message, then choose **Download PDF** (one A4 landscape page) or **Download PNG** (3500 × 2475 pixels). Both exports use the same artwork as the preview, with self-hosted fonts loaded before rendering. PDF uses high-resolution image artwork; it is not a tagged or digitally signed document. Certificate content also appears as accessible text in the section.
+
+Messages are drafts saved on the current device, separately for each player; they are not shared or stored in Supabase. If browser storage is blocked, drafts remain usable during the visit and a notice explains the limitation. Private scorekeeper reasons never enter the public certificate automatically. Dates and snapshot references identify the standings at download time; later rank changes do not update existing files.
+
+Certificate checks cover ties, zero-point and unavailable-history recognition, missing/archived player links, safe filenames, per-player drafts, maximum messages, mobile layout, reduced motion, all-player preview readiness, and the actual downloaded PDF/PNG dimensions. The complete suite now contains 19 Node tests and 16 browser tests.

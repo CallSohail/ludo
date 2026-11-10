@@ -29,3 +29,9 @@ History analytics use available events, not assumed match data. Positive awards,
 ## Verification record
 
 Eight analytics tests, five production-configuration tests, and ten browser tests cover the shipped flows. The automated WCAG AA checks cover overview themes, a player workspace and the sign-in dialog; they are not a substitute for a complete accessibility audit. Desktop (1695px) and phone (390px) captures were inspected with live public data copied into a local browser fixture. An independent reviewer identified compressed calendar gaps in daily bars; normalized day anchors and numeric time axes fixed it, and the reviewer scored that finding resolved. The frontend does not change Supabase schema or production score data.
+
+## Certificate extension
+
+The screen retains the dashboard's tokens, navigation, and controls. A searchable player collection sits beside a landscape print preview; mobile stacks the bounded roster above the preview. All certificate content is repeated as accessible HTML. Print artwork uses ivory #f7f3e9, forest #183c31, gold #94703a for the first position, silver-green #667b75 for second, bronze #a16c51 for third, and rose #9b7383 for the remaining league. Cormorant Garamond carries certificate titles and names; DM Sans carries factual detail. Finely ruled borders and geometric seals remain within the print artifact.
+
+The user explicitly requested a shining #1. The current leader is therefore highlighted across the site, with a thin gold border sweep; reduced-motion settings make this static. The certificate never equates penalty rank with match wins. Ties, missing history, and an all-zero opening table receive qualified wording. Personal messages remain device-local. Preview and export share a high-resolution renderer, and downloads stay disabled until the exact current player/message snapshot is ready.

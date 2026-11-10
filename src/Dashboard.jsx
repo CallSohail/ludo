@@ -1,5 +1,7 @@
+import Certificates, { LeaderSpotlight } from "./Certificates";
 import { useEffect, useMemo, useState } from "react";
 import {
+  Award,
   LayoutDashboard,
   Users,
   Activity,
@@ -59,6 +61,7 @@ const sections = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "players", label: "Players", icon: Users },
   { id: "activity", label: "Activity", icon: Activity },
+  { id: "certificates", label: "Certificates", icon: Award },
   { id: "rules", label: "House rules", icon: BookOpen },
 ];
 function routeFromHash() {
@@ -68,6 +71,12 @@ function routeFromHash() {
   } catch {
     hash = "overview";
   }
+  if (hash.startsWith("certificates="))
+    return {
+      section: "certificates",
+      player: null,
+      certificate: hash.slice(13),
+    };
   return hash.startsWith("player=")
     ? { section: "players", player: hash.slice(7) }
     : {
@@ -784,7 +793,15 @@ function Rules({ onAdmin }) {
     </div>
   );
 }
-function Profile({ player, players, events, onBack, period, setPeriod }) {
+function Profile({
+  player,
+  players,
+  events,
+  onBack,
+  period,
+  setPeriod,
+  onCertificate,
+}) {
   const [compare, setCompare] = useState("");
   const all = useMemo(
     () => events.filter((e) => e.player_id === player.id),
@@ -821,6 +838,14 @@ function Profile({ player, players, events, onBack, period, setPeriod }) {
               Rank #{rank} of {players.length}
             </span>
           </p>
+          <button
+            type="button"
+            className="dash-panel-link profile-certificate-link"
+            onClick={() => onCertificate(player.id)}
+          >
+            <Award size={16} />
+            View player certificate
+          </button>
         </div>
         <div className="dash-profile-score">
           <strong>{player.points_total}</strong>
@@ -1042,6 +1067,8 @@ export default function Dashboard({
     window.location.hash = id;
     setMenu(false);
   };
+  const openCertificate = (id) =>
+    navigate(`certificates=${encodeURIComponent(id)}`);
   const openPlayer = (id) => navigate(`player=${encodeURIComponent(id)}`);
   return (
     <div className={`dash-app ${menu ? "dash-menu-open" : ""}`}>
@@ -1170,6 +1197,13 @@ export default function Dashboard({
               league scores are unchanged.
             </div>
           )}
+          {!loading && players.length > 0 && (
+            <LeaderSpotlight
+              players={players}
+              onPlayer={openPlayer}
+              onCertificate={openCertificate}
+            />
+          )}
           {loading ? (
             <div
               className="dash-skeleton"
@@ -1203,6 +1237,7 @@ export default function Dashboard({
               onBack={() => navigate("players")}
               period={period}
               setPeriod={setPeriod}
+              onCertificate={openCertificate}
             />
           ) : (
             <>
@@ -1215,7 +1250,9 @@ export default function Dashboard({
                         ? "The players"
                         : route.section === "activity"
                           ? "Score activity"
-                          : "House rules"}
+                          : route.section === "certificates"
+                            ? "Player certificates"
+                            : "House rules"}
                   </h1>
                   <p>
                     {route.section === "overview"
@@ -1224,7 +1261,9 @@ export default function Dashboard({
                         ? "Every player, every point, a record to explore."
                         : route.section === "activity"
                           ? "Follow the changes behind the current standings."
-                          : "How scores, rankings, and records work."}
+                          : route.section === "certificates"
+                            ? "Personal recognition for every place at the table."
+                            : "How scores, rankings, and records work."}
                   </p>
                 </div>
                 <div className="dash-page-actions">
@@ -1239,14 +1278,16 @@ export default function Dashboard({
                     />
                     {refreshing ? "Refreshing" : "Refresh"}
                   </button>
-                  <button
-                    className="dash-button"
-                    disabled={!selectedEvents.length}
-                    onClick={() => exportHistory(selectedEvents, players)}
-                  >
-                    <Download size={15} />
-                    Export
-                  </button>
+                  {route.section !== "certificates" && (
+                    <button
+                      className="dash-button"
+                      disabled={!selectedEvents.length}
+                      onClick={() => exportHistory(selectedEvents, players)}
+                    >
+                      <Download size={15} />
+                      Export
+                    </button>
+                  )}
                 </div>
               </div>
               {(route.section === "overview" ||
@@ -1397,6 +1438,15 @@ export default function Dashboard({
                   </div>
                   <EventTable events={selectedEvents} players={players} />
                 </>
+              )}
+              {route.section === "certificates" && (
+                <Certificates
+                  players={players}
+                  events={events}
+                  lastUpdated={lastUpdated}
+                  selectedId={route.certificate}
+                  onSelect={openCertificate}
+                />
               )}
               {route.section === "rules" && <Rules onAdmin={onOpenAdmin} />}
             </>
