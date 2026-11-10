@@ -31,10 +31,28 @@
     "panelRadius": 12,
     "controlRadius": 8,
     "desktopPadding": 28,
-    "mobilePadding": 16
+    "mobilePadding": 16,
+    "certificate": {
+      "paper": "#f7f3e9",
+      "ink": "#183c31",
+      "gold": "#94703a",
+      "silver": "#667b75",
+      "bronze": "#a16c51",
+      "rose": "#9b7383",
+      "displayFont": "Cormorant Garamond",
+      "canvasWidth": 3500,
+      "canvasHeight": 2475,
+      "pdf": "A4 landscape"
+    }
   },
   "surface": {
-    "navigation": ["Overview", "Players", "Activity", "House rules"],
+    "navigation": [
+      "Overview",
+      "Players",
+      "Activity",
+      "Certificates",
+      "House rules"
+    ],
     "profile": "linkable workspace",
     "data": "available recorded penalty changes; current scores separately labelled"
   },

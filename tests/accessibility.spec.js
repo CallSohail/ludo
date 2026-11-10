@@ -29,3 +29,24 @@ test("dashboard and player workspace meet automated WCAG AA checks in both theme
     .analyze();
   expect(login.violations).toEqual([]);
 });
+test("certificate selection, editable message and canvas preview have accessible alternatives", async ({
+  page,
+}) => {
+  await page.goto("/#certificates");
+  await page
+    .getByRole("button", { name: "Download PDF", exact: true })
+    .waitFor();
+  await page.waitForFunction(() =>
+    document
+      .querySelector(".certificate-paper")
+      ?.classList.contains("is-ready"),
+  );
+  for (const theme of ["dark", "light"]) {
+    if (theme === "light")
+      await page.getByRole("button", { name: "Switch to light theme" }).click();
+    const result = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+      .analyze();
+    expect(result.violations).toEqual([]);
+  }
+});
