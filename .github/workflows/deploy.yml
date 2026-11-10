@@ -32,12 +32,16 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Test frontend
         run: npm test
-      - name: Build
-        run: npm run build
+      - name: Build production site
+        if: github.event_name != 'pull_request'
+        run: npm run build:production
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_SOHAIL_FONT_URL: ${{ secrets.VITE_SOHAIL_FONT_URL }}
+      - name: Build pull request preview
+        if: github.event_name == 'pull_request'
+        run: npm run build
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
