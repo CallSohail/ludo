@@ -70,4 +70,4 @@ For a new project, apply `supabase/verified-certificates.sql` after the existing
 
 Tests cover per-player drafts, all-player render readiness, empty/archived/zero/tied states, long names and messages, comment publication consent, issuance/read-back/revocation, genuine PDF link targets, multipage PNG ZIP contents and dimensions, sign-in return, full-size preview keyboard behavior and responsive accessibility checks.
 
-Current automated suite: 19 Node tests and 20 browser tests (39 total).
+Current automated suite: 19 Node tests and 21 browser tests (40 total).
