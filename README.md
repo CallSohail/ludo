@@ -1,11 +1,11 @@
 # Ludo Super League, Evry 2026
 
-A playful, live leaderboard for your Ludo nights. The whole site and the scorekeeper deck are protected by Supabase Auth, and every point is stored as a signed, hash-linked event.
+A playful, live leaderboard for your Ludo nights. Standings and limited score history are public; the scorekeeper deck is protected by Supabase Auth. Production score awards are stored as signed, hash-linked events.
 
 ## What is included
 
-- Private leaderboard with a full-site login gate, top-three podium, medals, badges, progress bars, live time, and animated fireworks.
-- Admin panel for adding players and awarding 1 to 9 points.
+- Public standings, top-three cards, player profiles, search, sorting, score comparisons, house rules, recent activity, and dark/light themes.
+- Admin panel for adding players and awarding 1 to 999 points (with the CRUD upgrade applied).
 - Consent checkbox before every point is published.
 - Hash-linked point ledger, each event records the previous hash, current time, admin identity, reason, and points.
 - Supabase Auth, Row Level Security, explicit Data API grants, and optional Supabase Realtime updates.
@@ -32,7 +32,7 @@ Demo data is stored only in the current browser. Do not use demo mode for the pu
 ## Connect Supabase
 
 1. Create a Supabase project.
-2. Open the SQL Editor and run [`supabase/schema.sql`](./supabase/schema.sql).
+2. Open the SQL Editor and run [`supabase/schema.sql`](./supabase/schema.sql). For the current public leaderboard and scorekeeper features, apply the existing [`enable-public-leaderboard.sql`](./supabase/enable-public-leaderboard.sql) and [`complete-crud-upgrade.sql`](./supabase/complete-crud-upgrade.sql) scripts after the schema. Review these scripts against an existing project before applying them; this frontend redesign does not change the database.
 3. Create the shared viewer in **Authentication → Users → Add user**:
    - Email: `sohail.cs951+ludoguys@gmail.com`
    - Password: set the shared password privately in Supabase
@@ -85,7 +85,7 @@ The Supabase URL and publishable key are public frontend values. The real protec
 
 - Duplicate player names are rejected, case-insensitively.
 - Blank or very short names and reasons are rejected.
-- Points are limited to 1 through 9 in both the UI and the database.
+- Awards use whole numbers from 1 through 999 with the existing CRUD database upgrade. The original schema alone supports only 1 through 9.
 - Inactive or missing players cannot receive points.
 - Two simultaneous point submissions are serialized before the previous hash is read.
 - Equal scores are ordered by the earlier player's creation time, so the board does not jump randomly.
@@ -105,3 +105,14 @@ select event_number, previous_hash, expected_previous_hash
 from ordered
 where event_number > 1 and previous_hash <> expected_previous_hash;
 ```
+
+## Frontend verification
+
+```bash
+npm ci
+npx playwright install chromium
+npm test
+npm run build
+```
+
+Tests use isolated local demo data and do not write to the production league. See [DESIGN.md](./DESIGN.md) for the visual direction, accessibility work, test coverage, and Unslop attribution.
