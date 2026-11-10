@@ -213,7 +213,8 @@ export async function fetchPlayers() {
     .select("id,name,accent,emoji,points_total,active,created_at")
     .eq("active", true)
     .order("points_total", { ascending: false })
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true });
   if (error) throw error;
   const players = data || [];
   const cache = readPublicCache();

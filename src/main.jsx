@@ -1,5 +1,3 @@
-import "@fontsource/cormorant-garamond/latin-400.css";
-import "@fontsource/cormorant-garamond/latin-600.css";
 import ErrorBoundary from "./ErrorBoundary";
 import "@fontsource/dm-sans/latin-400.css";
 import "@fontsource/dm-sans/latin-500.css";

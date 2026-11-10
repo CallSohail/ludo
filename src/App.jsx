@@ -28,7 +28,10 @@ function sortPlayers(players) {
     const pointsDifference =
       Number(b.points_total || 0) - Number(a.points_total || 0);
     if (pointsDifference !== 0) return pointsDifference;
-    return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+    return (
+      new Date(a.created_at || 0) - new Date(b.created_at || 0) ||
+      String(a.id).localeCompare(String(b.id))
+    );
   });
 }
 
@@ -987,6 +990,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [authReady, setAuthReady] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const returnToCertificate = useRef(false);
   const [adminUser, setAdminUser] = useState(null);
 
   const [darkMode, setDarkMode] = useState(() => {
@@ -1098,6 +1102,7 @@ export default function App() {
   const handleLogin = async ({ username, password }) => {
     const result = await signIn(username, password);
     setAdminUser(result.user);
+    if (returnToCertificate.current) setAdminOpen(false);
     await refresh();
   };
   const handleLogout = async () => {
@@ -1106,11 +1111,15 @@ export default function App() {
     setAdminOpen(false);
     await refresh();
   };
-  const openAdmin = () => setAdminOpen(true);
+  const openAdmin = (context) => {
+    returnToCertificate.current = context === "certificate";
+    setAdminOpen(true);
+  };
   if (!authReady) return <AccessLoading />;
   return (
     <>
       <Dashboard
+        adminUser={adminUser}
         players={players}
         history={history}
         loading={loading}
