@@ -1,0 +1,47 @@
+{
+  "name": "Ludo league analytics workspace",
+  "mode": "operate",
+  "source": "DESIGN.md",
+  "tokens": {
+    "dark": {
+      "page": "#0c0e10",
+      "panel": "#14171b",
+      "raised": "#1c2025",
+      "border": "#2b3037",
+      "text": "#f2f4f6",
+      "secondary": "#acb4bf",
+      "green": "#a7dc7c",
+      "pink": "#dda5bc",
+      "blue": "#8ebccc"
+    },
+    "light": {
+      "page": "#f3f5f6",
+      "panel": "#ffffff",
+      "raised": "#edf0f2",
+      "border": "#d6dce1",
+      "text": "#20272e",
+      "secondary": "#53616d",
+      "green": "#346c26",
+      "pink": "#924669",
+      "blue": "#37758c"
+    },
+    "font": "DM Sans",
+    "sizes": [10, 11, 12, 13, 14, 15, 16, 20, 24, 26, 28, 30, 32, 36],
+    "sidebarWidth": 224,
+    "panelRadius": 12,
+    "controlRadius": 8,
+    "desktopPadding": 28,
+    "mobilePadding": 16
+  },
+  "surface": {
+    "navigation": ["Overview", "Players", "Activity", "House rules"],
+    "profile": "linkable workspace",
+    "data": "available recorded penalty changes; current scores separately labelled"
+  },
+  "review": {
+    "method": "independent screenshot and code review",
+    "finding": "daily charts compressed calendar gaps",
+    "resolution": "normalized calendar anchors, numeric time axis, visible signed bars",
+    "verdict": "reviewer scored the daily-chart fix resolved"
+  }
+}

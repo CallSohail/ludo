@@ -1,12 +1,7 @@
+import Dashboard from "./Dashboard";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import {
-  config,
-  emojis,
-  isSupabaseConfigured,
-  palette,
-  recognition,
-} from "./config";
+import { config, emojis, isSupabaseConfigured, palette } from "./config";
 import {
   addPoints,
   adjustScore,
@@ -50,32 +45,7 @@ function formatDate(date, withSeconds = false) {
   }).format(new Date(date));
 }
 
-function getBadge(index, points) {
-  if (index < 3) return recognition[index];
-  if (points >= 8) return recognition[3];
-  return recognition[index % recognition.length];
-}
-
-function getRankReaction(index, total) {
-  const progress = total <= 1 ? 0 : index / (total - 1);
-  if (index === 0)
-    return { face: "😭", label: "Maximum suffering", tone: "crying" };
-  if (progress < 0.3)
-    return { face: "😤", label: "Deeply concerned", tone: "angry" };
-  if (progress < 0.65)
-    return { face: "😐", label: "Processing events", tone: "neutral" };
-  return { face: "😌", label: "Living peacefully", tone: "happy" };
-}
-
-function initials(name = "") {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (!words.length) return "?";
-  return words.length === 1
-    ? words[0].slice(0, 2).toUpperCase()
-    : `${words[0][0]}${words.at(-1)[0]}`.toUpperCase();
-}
-
-function Arrow({ direction = "up" }) {
+function Arrow() {
   return (
     <svg
       className="arrow-icon"
@@ -85,929 +55,8 @@ function Arrow({ direction = "up" }) {
       strokeWidth="1.5"
       aria-hidden="true"
     >
-      <path
-        d={
-          direction === "down"
-            ? "M12 4v16m-6-6 6 6 6-6"
-            : "M5 19 19 5M5 5h14v14"
-        }
-      />
+      <path d="M5 19 19 5M5 5h14v14" />
     </svg>
-  );
-}
-
-function PlayerToken({ player, className = "", size = "md" }) {
-  const playerKey = player?.name?.trim().toLowerCase();
-  const avatarFile = {
-    mubeen: "mubeen-avatar.webp",
-    saboor: "saboor-avatar.webp",
-    sohail: "sohail-avatar.webp",
-  }[playerKey];
-  const [failedAvatar, setFailedAvatar] = useState("");
-  const hasPortrait = Boolean(avatarFile) && failedAvatar !== avatarFile;
-  const avatarUrl = hasPortrait
-    ? `${import.meta.env.BASE_URL}${avatarFile}`
-    : "";
-
-  return (
-    <span
-      className={`player-token player-token-${size} ${hasPortrait ? "player-token-photo" : ""} ${className}`}
-      style={{ "--token-color": player?.accent || palette[0] }}
-      aria-hidden="true"
-    >
-      {hasPortrait ? (
-        <img
-          src={avatarUrl}
-          alt=""
-          loading={playerKey === "mubeen" ? "eager" : "lazy"}
-          decoding="async"
-          onError={() => setFailedAvatar(avatarFile)}
-        />
-      ) : (
-        <b>{initials(player?.name)}</b>
-      )}
-      {!hasPortrait && (
-        <>
-          <i />
-          <i />
-          <i />
-        </>
-      )}
-    </span>
-  );
-}
-
-function PlayerSparkline({ playerId, history, accent }) {
-  const moves = history
-    .filter((event) => event.player_id === playerId)
-    .sort((a, b) => Number(a.event_number) - Number(b.event_number));
-  let total = 0;
-  const values = [
-    0,
-    ...moves.map((event) => (total += Number(event.points || 0))),
-  ].slice(-14);
-  const max = Math.max(1, ...values);
-  const min = Math.min(0, ...values);
-  const x = (index) => 7 + (index / Math.max(1, values.length - 1)) * 86;
-  const y = (value) => 38 - ((value - min) / (max - min)) * 30;
-  const points = values
-    .map((value, index) => `${x(index)},${y(value)}`)
-    .join(" ");
-  const area = `7,${y(0)} ${points} 93,${y(0)}`;
-  const latest = values.at(-1) || 0;
-  const previous = values.at(-2) || 0;
-  const change = latest - previous;
-
-  return (
-    <div className="progress-chart" style={{ "--chart-accent": accent }}>
-      <div className="chart-meta">
-        <span>
-          {moves.length
-            ? `${moves.length} signed move${moves.length === 1 ? "" : "s"}`
-            : "No moves yet"}
-        </span>
-        <b>{change > 0 ? `+${change}` : change || "—"} latest</b>
-      </div>
-      <svg
-        className="sparkline"
-        viewBox="0 0 100 44"
-        role="img"
-        aria-label={`${moves.length} recorded score moves, net recorded change ${latest}`}
-        preserveAspectRatio="none"
-      >
-        <defs>
-          <linearGradient id={`chart-${playerId}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor={accent} stopOpacity=".3" />
-            <stop offset="1" stopColor={accent} stopOpacity=".02" />
-          </linearGradient>
-        </defs>
-        <path className="chart-grid" d="M7 8 H93 M7 23 H93 M7 38 H93" />
-        <polygon points={area} fill={`url(#chart-${playerId})`} />
-        <polyline
-          className="chart-line"
-          points={points}
-          style={{ stroke: accent }}
-        />
-        {values.map((value, index) => (
-          <circle
-            className="chart-point"
-            key={`${index}-${value}`}
-            cx={x(index)}
-            cy={y(value)}
-            r={index === values.length - 1 ? 2.7 : 1.25}
-            style={{ fill: accent }}
-          />
-        ))}
-      </svg>
-    </div>
-  );
-}
-
-function Header({ onOpenAdmin, adminUser, online, darkMode, onToggleTheme }) {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  useEffect(() => {
-    document.body.classList.toggle("nav-open", mobileOpen);
-    return () => document.body.classList.remove("nav-open");
-  }, [mobileOpen]);
-  useEffect(() => {
-    const closeOnEscape = (event) => {
-      if (event.key === "Escape" && mobileOpen) {
-        setMobileOpen(false);
-        document.querySelector(".mobile-menu-toggle")?.focus();
-      }
-    };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [mobileOpen]);
-  const closeMenu = () => setMobileOpen(false);
-  return (
-    <header className={`site-header ${mobileOpen ? "menu-open" : ""}`}>
-      <a className="brand" href="#top" aria-label="Ludo Super League home">
-        <span className="brand-die">⚄</span>
-        <span>
-          <strong>LUDO</strong>
-          <small>SUPER LEAGUE</small>
-        </span>
-      </a>
-      <nav className="main-nav" aria-label="Main navigation">
-        <a href="#top">Overview</a>
-        <a href="#leaderboard">Standings</a>
-        <a href="#league-guide">House rules</a>
-      </nav>
-      <div className="header-actions">
-        <span className={`live-pill ${online ? "" : "offline"}`}>
-          <span className="live-dot" /> {online ? "Online" : "Offline"}
-        </span>
-        <button
-          className="theme-toggle"
-          onClick={onToggleTheme}
-          type="button"
-          aria-label={
-            darkMode ? "Switch to light theme" : "Switch to dark theme"
-          }
-        >
-          {darkMode ? "◐" : "◑"}
-        </button>
-        <button className="admin-trigger" onClick={onOpenAdmin} type="button">
-          <span>{adminUser ? "Scorekeeper" : "Scorekeeper"}</span>
-        </button>
-        <button
-          className="mobile-menu-toggle"
-          aria-label={mobileOpen ? "Close menu" : "Menu"}
-          onClick={() => setMobileOpen((value) => !value)}
-          type="button"
-          aria-expanded={mobileOpen}
-          aria-controls="mobile-nav"
-        >
-          {mobileOpen ? "×" : "☰"}
-          <span className="sr-only">Menu</span>
-        </button>
-      </div>
-      {mobileOpen && (
-        <div id="mobile-nav" className="mobile-nav-sheet">
-          <div className="mobile-nav-links">
-            <a href="#top" onClick={closeMenu}>
-              Overview
-            </a>
-            <a href="#leaderboard" onClick={closeMenu}>
-              Standings
-            </a>
-            <a href="#league-guide" onClick={closeMenu}>
-              House rules
-            </a>
-            <button
-              type="button"
-              onClick={() => {
-                onToggleTheme();
-                closeMenu();
-              }}
-            >
-              {darkMode ? "Switch to light theme" : "Switch to dark theme"}
-            </button>
-          </div>
-          <button
-            className="primary-button full-width"
-            type="button"
-            onClick={() => {
-              closeMenu();
-              onOpenAdmin();
-            }}
-          >
-            Open scorekeeper
-          </button>
-        </div>
-      )}
-    </header>
-  );
-}
-
-function Hero({ players, history, onOpenAdmin }) {
-  const total = players.reduce(
-    (sum, player) => sum + Number(player.points_total || 0),
-    0,
-  );
-  const leader = players[0];
-  const tied =
-    leader &&
-    players.filter(
-      (player) => Number(player.points_total) === Number(leader.points_total),
-    ).length > 1;
-  return (
-    <section className="hero" id="top">
-      <div className="hero-copy">
-        <p className="eyebrow">
-          <span className="season-dot" /> Évry · 2026 season
-        </p>
-        <h1>
-          Good friends.
-          <br />
-          Bad rolls.
-          <br />
-          <em>Kept on record.</em>
-        </h1>
-        <p className="hero-text">
-          The Ludo Super League scorebook. Follow every penalty, settle the
-          table talk, and find out who’s carrying the most points.
-        </p>
-        <div className="hero-buttons">
-          <a className="primary-button" href="#leaderboard">
-            See the standings <Arrow />
-          </a>
-          <a className="text-button" href="#league-guide">
-            How the league works <Arrow direction="down" />
-          </a>
-        </div>
-        <p className="hero-footnote">
-          A friendly league. An unforgiving scorebook.
-        </p>
-      </div>
-      <div className="scoreboard-preview">
-        <div className="preview-heading">
-          <span>On the board</span>
-          <span className="season-tag">Évry ’26</span>
-        </div>
-        <div className="preview-leader">
-          <span>
-            {leader
-              ? tied
-                ? "Joint highest penalty total"
-                : "Highest penalty total"
-              : "A new season starts here"}
-          </span>
-          <strong>{leader?.name || "Your table awaits"}</strong>
-          <div className="preview-number">
-            {leader ? leader.points_total : "—"}
-            <span>penalty points</span>
-          </div>
-        </div>
-        <div className="preview-ranks">
-          {players.slice(0, 3).map((player, index) => (
-            <div key={player.id}>
-              <span className="preview-rank">0{index + 1}</span>
-              <PlayerToken player={player} size="sm" />
-              <span className="preview-name">{player.name}</span>
-              <strong>{player.points_total}</strong>
-              <div className="preview-bar" aria-hidden="true">
-                <i
-                  style={{
-                    width: `${Number(leader?.points_total) > 0 ? (Number(player.points_total) / Number(leader.points_total)) * 100 : 0}%`,
-                  }}
-                />
-              </div>
-            </div>
-          ))}
-          {!players.length && (
-            <p>Add players from the scorekeeper to start the table.</p>
-          )}
-        </div>
-        <div className="preview-footer">
-          <span>{players.length} players</span>
-          <span>{total} total points</span>
-          <span>Higher = more penalties</span>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function LeagueGuide({ players, history }) {
-  const recent = [...history]
-    .sort((a, b) => Number(b.event_number || 0) - Number(a.event_number || 0))
-    .slice(0, 5);
-  return (
-    <section className="league-details" id="league-guide">
-      <div className="league-guide">
-        <p className="eyebrow">The house rules</p>
-        <h2>
-          A little rivalry.
-          <br />A clear record.
-        </h2>
-        <p>
-          These are penalty points: a higher place on this board means more
-          points collected, not more games won.
-        </p>
-        <ol className="guide-steps">
-          <li>
-            <span>01</span>
-            <div>
-              <h3>Play the round</h3>
-              <p>
-                The scorekeeper records penalties with a reason. Each award can
-                add 1–999 points.
-              </p>
-            </div>
-          </li>
-          <li>
-            <span>02</span>
-            <div>
-              <h3>Keep it accountable</h3>
-              <p>
-                Score changes are recorded in the ledger. Corrections add an
-                adjustment instead of erasing an earlier entry.
-              </p>
-            </div>
-          </li>
-          <li>
-            <span>03</span>
-            <div>
-              <h3>Read the table</h3>
-              <p>
-                Highest total comes first. Equal totals use player creation
-                order, with the earlier player listed first.
-              </p>
-            </div>
-          </li>
-        </ol>
-      </div>
-      <div className="recent-card">
-        <div className="recent-title">
-          <div>
-            <p className="eyebrow">From the scorebook</p>
-            <h2>Recent activity</h2>
-          </div>
-          <Arrow direction="down" />
-        </div>
-        {recent.length ? (
-          <ol className="public-activity">
-            {recent.map((event, index) => {
-              const player = players.find((p) => p.id === event.player_id);
-              return (
-                <li key={event.event_number || index}>
-                  <span
-                    className={
-                      Number(event.points) < 0
-                        ? "event-score correction"
-                        : "event-score"
-                    }
-                  >
-                    {Number(event.points) > 0 ? "+" : ""}
-                    {event.points}
-                  </span>
-                  <div>
-                    <strong>{player?.name || "Archived player"}</strong>
-                    <span>
-                      {Number(event.points) < 0
-                        ? "Score correction"
-                        : "Penalty recorded"}{" "}
-                      · #{event.event_number || "—"}
-                    </span>
-                    <time dateTime={event.created_at}>
-                      {formatDate(event.created_at)}
-                    </time>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        ) : (
-          <div className="activity-empty">
-            <span aria-hidden="true">—</span>
-            <h3>No recorded activity yet</h3>
-            <p>
-              Score updates will appear here when history is available. Current
-              totals are shown in the standings.
-            </p>
-          </div>
-        )}
-        <p className="activity-note">
-          Public activity shows score changes. Reasons and signed receipts are
-          available to the scorekeeper.
-        </p>
-      </div>
-    </section>
-  );
-}
-
-function Podium({ players, onOpen }) {
-  const slots = [0, 1, 2];
-  return (
-    <ol className="podium" aria-label="Top three players">
-      {slots.map((index) => {
-        const player = players[index];
-        if (!player)
-          return (
-            <li
-              className={`podium-card empty podium-${index + 1}`}
-              key={`empty-${index}`}
-            >
-              <span>?</span>
-              <small>
-                waiting for
-                <br />a challenger
-              </small>
-            </li>
-          );
-        const badge = getBadge(index, player.points_total);
-        const reaction = getRankReaction(index, players.length);
-        return (
-          <li
-            className={`podium-card podium-${index + 1}`}
-            key={player.id}
-            style={{ "--accent": player.accent }}
-          >
-            <div className="podium-rank">
-              {index === 0 ? "01" : index === 1 ? "02" : "03"}
-            </div>
-            <div
-              className={`podium-avatar reaction-${reaction.tone}`}
-              style={{ "--accent": player.accent }}
-            >
-              <PlayerToken player={player} size="lg" />
-              <b>{reaction.face}</b>
-            </div>
-            <div className="podium-medal">{badge.icon}</div>
-            <h3 title={player.name}>{player.name}</h3>
-            <span className="badge-label">{badge.label}</span>
-            <strong className="podium-score">
-              {player.points_total}
-              <small> pts</small>
-            </strong>
-            {index === 0 && <span className="crown">♛</span>}
-            <button
-              type="button"
-              className="podium-open"
-              onClick={() => onOpen(player)}
-              aria-label={`Open profile for ${player.name}`}
-            >
-              View profile <span>→</span>
-            </button>
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
-function PlayerRow({
-  player,
-  index,
-  leaderPoints,
-  history,
-  totalPlayers,
-  onOpen,
-}) {
-  const badge = getBadge(index, player.points_total);
-  const reaction = getRankReaction(index, totalPlayers);
-  const progress =
-    leaderPoints > 0
-      ? Math.round((Number(player.points_total || 0) / leaderPoints) * 100)
-      : 0;
-  return (
-    <button
-      className={`player-row ${index < 3 ? "top-row" : ""}`}
-      type="button"
-      onClick={() => onOpen(player)}
-      aria-label={`Open ${player.name} profile, rank ${index + 1}, ${player.points_total} points`}
-    >
-      <div className="row-rank">
-        <span>{String(index + 1).padStart(2, "0")}</span>
-        {index < 3 && <b>{badge.icon}</b>}
-      </div>
-      <PlayerToken player={player} className="row-avatar" />
-      <div className="row-name">
-        <strong title={player.name}>{player.name}</strong>
-        <span>{badge.label}</span>
-      </div>
-      <div className="row-progress">
-        <PlayerSparkline
-          playerId={player.id}
-          history={history}
-          accent={player.accent}
-        />
-        <span
-          className={`leader-meter ${progress === 0 ? "is-empty" : ""}`}
-          aria-label={
-            progress === 0
-              ? "Yet to be punished"
-              : `${progress}% of leader's score`
-          }
-        >
-          <span>
-            <i style={{ width: `${Math.min(100, progress)}%` }} />
-          </span>
-          <b>
-            {progress === 0 ? "Yet to be punished" : `${progress}% of leader`}
-          </b>
-        </span>
-      </div>
-      <div className="row-points">
-        <strong>{player.points_total}</strong>
-        <span>points</span>
-      </div>
-      <div
-        className={`row-reaction reaction-${reaction.tone}`}
-        title={reaction.label}
-        aria-label={`${player.name}: ${reaction.label}`}
-      >
-        {reaction.face}
-      </div>
-      <span className="row-open" aria-hidden="true">
-        Profile
-      </span>
-    </button>
-  );
-}
-
-function PlayerProfile({
-  player,
-  index,
-  players,
-  history,
-  onClose,
-  returnFocusRef,
-}) {
-  const dialogRef = useRef(null);
-  const closeRef = useRef(null);
-  const moves = history
-    .filter((event) => event.player_id === player.id)
-    .sort((a, b) => Number(b.event_number || 0) - Number(a.event_number || 0));
-  const positiveMoves = moves.filter((event) => Number(event.points) > 0);
-  const totalAdded = positiveMoves.reduce(
-    (sum, event) => sum + Number(event.points || 0),
-    0,
-  );
-  const average = positiveMoves.length
-    ? (totalAdded / positiveMoves.length).toFixed(1)
-    : "0.0";
-  const leaderPoints = Number(players[0]?.points_total || 0);
-  const gap = Math.max(0, leaderPoints - Number(player.points_total || 0));
-  const reaction = getRankReaction(index, players.length);
-  const badge = getBadge(index, player.points_total);
-  const profileCopy =
-    moves.length === 0
-      ? "Hasn’t signed a single loss yet. Untested, or just very good at avoiding the table."
-      : index === 0
-        ? "Currently carrying the league’s heaviest crown. Every new loss adds another chapter to the story."
-        : gap === 0
-          ? "Locked in a points tie at the top. One dramatic round could change everything."
-          : `${gap} point${gap === 1 ? "" : "s"} away from the current leader. The comeback remains mathematically possible.`;
-
-  useEffect(() => {
-    const oldOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    closeRef.current?.focus();
-    const handleKey = (event) => {
-      if (event.key === "Escape") onClose();
-      if (event.key !== "Tab" || !dialogRef.current) return;
-      const focusable = [
-        ...dialogRef.current.querySelectorAll(
-          'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-        ),
-      ].filter((node) => !node.disabled);
-      if (!focusable.length) return;
-      const first = focusable[0];
-      const last = focusable.at(-1);
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => {
-      document.body.style.overflow = oldOverflow;
-      window.removeEventListener("keydown", handleKey);
-      returnFocusRef?.current?.focus();
-    };
-  }, [onClose, returnFocusRef]);
-
-  return createPortal(
-    <div
-      className="profile-backdrop"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <section
-        ref={dialogRef}
-        className="player-profile"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="profile-name"
-      >
-        <button
-          ref={closeRef}
-          className="profile-close"
-          type="button"
-          onPointerDown={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            onClose();
-          }}
-          onClick={onClose}
-          aria-label="Close player profile"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M6 6l12 12M18 6L6 18" />
-          </svg>
-          <span>Close</span>
-        </button>
-        <header
-          className="profile-hero"
-          style={{ "--profile-accent": player.accent }}
-        >
-          <div
-            className="profile-avatar"
-            aria-label={`${player.name} player token`}
-          >
-            <PlayerToken player={player} size="xl" />
-            <b>{reaction.face}</b>
-          </div>
-          <div className="profile-identity">
-            <p>Player profile • Rank {String(index + 1).padStart(2, "0")}</p>
-            <h2 id="profile-name">{player.name}</h2>
-            <span>{badge.label}</span>
-          </div>
-          <div className="profile-total">
-            <strong>{player.points_total}</strong>
-            <span>Penalty points</span>
-          </div>
-        </header>
-        <div className="profile-body">
-          <p className="profile-story">{profileCopy}</p>
-          <div className="profile-metrics">
-            <article>
-              <small>Current rank</small>
-              <strong>#{index + 1}</strong>
-              <span>of {players.length} players</span>
-            </article>
-            <article>
-              <small>Signed moves</small>
-              <strong>{moves.length}</strong>
-              <span>
-                {moves.length === 1 ? "ledger entry" : "ledger entries"}
-              </span>
-            </article>
-            <article>
-              <small>Avg per move</small>
-              <strong>{average}</strong>
-              <span>points per signed move</span>
-            </article>
-          </div>
-          <section className="profile-chart-card">
-            <div>
-              <p>Penalty progress</p>
-              <span>Net change in available score history</span>
-            </div>
-            {moves.length ? (
-              <PlayerSparkline
-                playerId={player.id}
-                history={history}
-                accent={player.accent}
-              />
-            ) : (
-              <p className="history-note">
-                No score history is available for this player yet. The current
-                total is shown above.
-              </p>
-            )}
-          </section>
-          <section className="profile-activity">
-            <div className="profile-section-title">
-              <h3>Recent activity</h3>
-              <span>
-                {moves.length ? `${moves.length} total` : "Quiet for now"}
-              </span>
-            </div>
-            {moves.length === 0 ? (
-              <div className="profile-empty">
-                No signed score events yet. A peaceful record, for now.
-              </div>
-            ) : (
-              <div className="activity-list">
-                {moves.slice(0, 4).map((event) => (
-                  <article key={event.id || event.event_number}>
-                    <span
-                      className={
-                        Number(event.points) >= 0 ? "positive" : "negative"
-                      }
-                    >
-                      {Number(event.points) >= 0 ? "+" : ""}
-                      {event.points}
-                    </span>
-                    <div>
-                      <strong>{event.reason || "Score updated"}</strong>
-                      <small>
-                        {formatDate(event.created_at, true)} • Event #
-                        {event.event_number || "—"}
-                      </small>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-      </section>
-    </div>,
-    document.body,
-  );
-}
-
-function Leaderboard({ players, history, loading }) {
-  const [profilePlayer, setProfilePlayer] = useState(null);
-  const closeProfile = useCallback(() => setProfilePlayer(null), []);
-  const [query, setQuery] = useState("");
-  const [sortBy, setSortBy] = useState("points");
-  const [compact, setCompact] = useState(false);
-  const triggerRef = useRef(null);
-  const leaderPoints = players[0]?.points_total || 0;
-  const profileIndex = profilePlayer
-    ? players.findIndex((player) => player.id === profilePlayer.id)
-    : -1;
-  const visiblePlayers = useMemo(() => {
-    const filtered = players.filter((player) =>
-      player.name.toLowerCase().includes(query.trim().toLowerCase()),
-    );
-    return [...filtered].sort((a, b) => {
-      if (sortBy === "name") return a.name.localeCompare(b.name);
-      if (sortBy === "recent") {
-        const latest = (id) =>
-          Math.max(
-            0,
-            ...history
-              .filter((event) => event.player_id === id)
-              .map((event) => new Date(event.created_at).getTime() || 0),
-          );
-        return latest(b.id) - latest(a.id);
-      }
-      if (sortBy === "momentum")
-        return Number(b.points_total || 0) - Number(a.points_total || 0);
-      return Number(b.points_total || 0) - Number(a.points_total || 0);
-    });
-  }, [players, history, query, sortBy]);
-  return (
-    <section className="leaderboard-section" id="leaderboard">
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">The penalty table</p>
-          <h2>
-            The standings<span className="pink-period">.</span>
-          </h2>
-        </div>
-        <div className="heading-note">
-          A scorebook for friendly defeats.
-          <br />
-          <strong>Highest total ranks first.</strong>
-        </div>
-      </div>
-      {loading ? (
-        <div className="loading-board">
-          <span className="spinner" />
-          Loading the standings…
-        </div>
-      ) : players.length === 0 ? (
-        <div className="empty-board">
-          <h3>No players on the board yet</h3>
-          <p>Open the admin deck and add your first player.</p>
-        </div>
-      ) : (
-        <>
-          <Podium
-            players={players}
-            onOpen={(player) => {
-              triggerRef.current = document.activeElement;
-              setProfilePlayer(player);
-            }}
-          />
-          <div className="list-heading">
-            <div>
-              <h3 id="table-heading">Full league table</h3>
-              <span>Equal scores use the earlier player’s creation order</span>
-            </div>
-            <span>
-              {players.length} player{players.length === 1 ? "" : "s"} · tap a
-              row for the profile
-            </span>
-          </div>
-          <div className="table-toolbar" role="search">
-            <label className="table-search">
-              <span className="sr-only">Search players</span>
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search the league"
-              />
-              <button
-                type="button"
-                onClick={() => setQuery("")}
-                aria-label="Clear player search"
-              >
-                ×
-              </button>
-            </label>
-            <label className="table-sort">
-              <span className="sr-only">Sort players</span>
-              <select
-                value={sortBy}
-                onChange={(event) => setSortBy(event.target.value)}
-              >
-                <option value="points">Sort: points</option>
-                <option value="name">Sort: name</option>
-                <option value="recent">Sort: recent activity</option>
-              </select>
-            </label>
-            <button
-              className="view-toggle"
-              type="button"
-              aria-pressed={compact}
-              onClick={() => setCompact((value) => !value)}
-            >
-              {compact ? "Comfortable" : "Compact"} view
-            </button>
-          </div>
-          {visiblePlayers.length === 0 ? (
-            <div className="table-empty">
-              <strong>No players match that search.</strong>
-              <button type="button" onClick={() => setQuery("")}>
-                Reset search
-              </button>
-            </div>
-          ) : (
-            <ol
-              className={`player-list ${compact ? "is-compact" : ""}`}
-              aria-labelledby="table-heading"
-            >
-              {visiblePlayers.map((player) => {
-                const rankIndex = players.findIndex(
-                  (item) => item.id === player.id,
-                );
-                return (
-                  <li key={player.id}>
-                    <PlayerRow
-                      player={player}
-                      index={rankIndex}
-                      leaderPoints={leaderPoints}
-                      history={history}
-                      totalPlayers={players.length}
-                      onOpen={(selected) => {
-                        triggerRef.current = document.activeElement;
-                        setProfilePlayer(selected);
-                      }}
-                    />
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-        </>
-      )}
-      {profilePlayer && profileIndex >= 0 && (
-        <PlayerProfile
-          player={players[profileIndex]}
-          index={profileIndex}
-          players={players}
-          history={history}
-          onClose={closeProfile}
-          returnFocusRef={triggerRef}
-        />
-      )}
-    </section>
-  );
-}
-
-function Footer({ onOpenAdmin, eventCount }) {
-  return (
-    <footer className="site-footer">
-      <div>
-        <span className="footer-die">⚄</span>
-        <strong>Ludo Super League</strong>
-        <small>Evry 2026, where the dice have opinions.</small>
-      </div>
-      <div className="footer-ledger">
-        <span className="chain-icon">⛓</span>
-        <span>
-          <strong>{eventCount} available score changes</strong>
-          <small>Every score leaves a little trace.</small>
-        </span>
-      </div>
-      <button className="footer-admin" type="button" onClick={onOpenAdmin}>
-        Open scorekeeper deck <Arrow />
-      </button>
-    </footer>
   );
 }
 
@@ -1032,9 +81,7 @@ function LoginPanel({ onLogin, busy, error }) {
   return (
     <div className="login-screen">
       <p className="eyebrow">Restricted to people who know the scores</p>
-      <h2>
-        Enter the <em>admin deck</em>
-      </h2>
+      <h2>Scorekeeper sign in</h2>
       <p className="login-copy">
         The players can watch. Only the scorekeeper can make the numbers move.
       </p>
@@ -1062,7 +109,7 @@ function LoginPanel({ onLogin, busy, error }) {
               onChange={(event) =>
                 setForm({ ...form, password: event.target.value })
               }
-              placeholder="Your secret dice password"
+              placeholder="Password"
               required
             />
             <button
@@ -1084,7 +131,7 @@ function LoginPanel({ onLogin, busy, error }) {
           disabled={busy}
           type="submit"
         >
-          {busy ? "Checking the ledger..." : "Unlock the scorebook"} <Arrow />
+          {busy ? "Checking the ledger..." : "Sign in"} <Arrow />
         </button>
       </form>
       <p className="demo-hint">
@@ -1105,6 +152,7 @@ function AdminPanel({
   onRefresh,
   onBurst,
   onLogout,
+  ledgerError,
 }) {
   const [loginBusy, setLoginBusy] = useState(false);
   const [loginError, setLoginError] = useState("");
@@ -1121,6 +169,7 @@ function AdminPanel({
     reason: "",
   });
   const [manageBusy, setManageBusy] = useState(false);
+  const [correctionConsent, setCorrectionConsent] = useState(false);
   const [activeTab, setActiveTab] = useState("score");
   useEffect(() => {
     const previous = document.activeElement;
@@ -1317,7 +366,8 @@ function AdminPanel({
     setManageBusy(true);
     setFormMessage(null);
     try {
-      await adjustScore(correction);
+      await adjustScore({ ...correction, consent: correctionConsent });
+      setCorrectionConsent(false);
       await onRefresh();
       setCorrection({ ...correction, points: -1, reason: "" });
       setFormMessage({
@@ -1395,9 +445,7 @@ function AdminPanel({
         <div className="admin-topbar">
           <div>
             <p className="eyebrow">Scorekeeper deck</p>
-            <h2 id="admin-title">
-              Make the board <em>move.</em>
-            </h2>
+            <h2 id="admin-title">Manage the league</h2>
           </div>
           <div className="admin-top-actions">
             <span className="signed-in">
@@ -1525,13 +573,14 @@ function AdminPanel({
                 <div className="card-title">
                   <span className="card-number">02</span>
                   <div>
-                    <h3>Drop a point</h3>
+                    <h3>Record a penalty</h3>
                     <p>Type any whole number from 1 to 999.</p>
                   </div>
                 </div>
                 <label>
-                  Who earned it?
+                  Player
                   <select
+                    aria-label="Player"
                     value={pointForm.playerId}
                     onChange={(event) =>
                       setPointForm({
@@ -1550,8 +599,9 @@ function AdminPanel({
                   </select>
                 </label>
                 <label>
-                  How many points?
+                  Penalty points
                   <input
+                    aria-label="Penalty points"
                     className="points-number-input"
                     type="number"
                     inputMode="numeric"
@@ -1595,10 +645,11 @@ function AdminPanel({
                   <b>{selectedPlayer ? `+${pointForm.points}` : "—"}</b>
                 </div>
                 <label>
-                  Official-ish reason
+                  Reason for the penalty
                   <input
                     minLength="3"
                     maxLength="180"
+                    aria-label="Reason for the penalty"
                     value={pointForm.reason}
                     onChange={(event) =>
                       setPointForm({ ...pointForm, reason: event.target.value })
@@ -1770,6 +821,7 @@ function AdminPanel({
                     creates a signed adjustment instead of rewriting history.
                   </p>
                   <select
+                    aria-label="Player to correct"
                     value={correction.playerId}
                     onChange={(event) =>
                       setCorrection({
@@ -1785,6 +837,7 @@ function AdminPanel({
                     ))}
                   </select>
                   <input
+                    aria-label="Correction points"
                     type="number"
                     inputMode="numeric"
                     min="-999"
@@ -1801,6 +854,7 @@ function AdminPanel({
                   <input
                     minLength="3"
                     maxLength="180"
+                    aria-label="Reason for correction"
                     placeholder="Reason for correction"
                     value={correction.reason}
                     onChange={(event) =>
@@ -1810,9 +864,19 @@ function AdminPanel({
                       })
                     }
                   />
+                  <label className="consent-box">
+                    <input
+                      type="checkbox"
+                      checked={correctionConsent}
+                      onChange={(event) =>
+                        setCorrectionConsent(event.target.checked)
+                      }
+                    />
+                    <span>I confirm this score correction and its reason</span>
+                  </label>
                   <button
                     className="dark-button full-width"
-                    disabled={manageBusy}
+                    disabled={manageBusy || !correctionConsent}
                     type="submit"
                   >
                     Sign correction
@@ -1825,12 +889,24 @@ function AdminPanel({
             <div className="ledger-card">
               <div className="ledger-heading">
                 <div>
-                  <p className="eyebrow">Tamper-evident-ish ledger</p>
+                  <p className="eyebrow">Private score receipts</p>
                   <h3>Recent moves</h3>
                 </div>
                 <span className="chain-mark">⛓</span>
               </div>
               <div className="ledger-list">
+                {ledgerError && (
+                  <div className="form-error" role="alert">
+                    {ledgerError}
+                    <button
+                      type="button"
+                      className="dash-button"
+                      onClick={onRefresh}
+                    >
+                      Retry receipts
+                    </button>
+                  </div>
+                )}
                 {events.length === 0 ? (
                   <div className="ledger-empty">
                     No signed moves yet.
@@ -1906,6 +982,7 @@ export default function App() {
   );
   const [history, setHistory] = useState(() => cachedBoard?.history || []);
   const [events, setEvents] = useState([]);
+  const [ledgerError, setLedgerError] = useState("");
   const [loading, setLoading] = useState(() => !cachedBoard);
   const [error, setError] = useState("");
   const [authReady, setAuthReady] = useState(false);
@@ -1919,28 +996,42 @@ export default function App() {
       return true;
     }
   });
-  const [clock, setClock] = useState(new Date());
+  const [lastUpdated, setLastUpdated] = useState(() =>
+    cachedBoard?.savedAt ? new Date(cachedBoard.savedAt) : null,
+  );
+  const [refreshing, setRefreshing] = useState(false);
+  const requestRef = useRef(0);
   const [online, setOnline] = useState(() => navigator.onLine);
 
   const refresh = useCallback(async () => {
-    try {
-      const [nextPlayers, nextEvents, nextHistory] = await Promise.all([
-        fetchPlayers(),
-        fetchEvents(),
-        fetchScoreHistory(),
-      ]);
-      setPlayers(sortPlayers(nextPlayers));
-      setEvents(nextEvents);
-      setHistory(nextHistory);
-      setError("");
-    } catch (loadError) {
-      setError(
-        loadError.message ||
-          "The scoreboard is taking a suspiciously long coffee break.",
-      );
-    } finally {
-      setLoading(false);
+    const request = ++requestRef.current;
+    setRefreshing(true);
+    const [board, ledger, scoreHistory] = await Promise.allSettled([
+      fetchPlayers(),
+      fetchEvents(),
+      fetchScoreHistory(),
+    ]);
+    if (request !== requestRef.current) return;
+    if (board.status === "fulfilled") {
+      setPlayers(sortPlayers(board.value));
+      setLastUpdated(new Date());
     }
+    if (ledger.status === "fulfilled") setEvents(ledger.value);
+    setLedgerError(
+      ledger.status === "rejected"
+        ? "Private receipts could not be refreshed. Check your connection and try again."
+        : "",
+    );
+    if (scoreHistory.status === "fulfilled") setHistory(scoreHistory.value);
+    setError(
+      board.status === "rejected"
+        ? "The standings could not be refreshed. Check your connection and try again."
+        : scoreHistory.status === "rejected"
+          ? "Score history could not be refreshed. Try again to load the latest activity."
+          : "",
+    );
+    setLoading(false);
+    setRefreshing(false);
   }, []);
 
   useEffect(() => {
@@ -1973,7 +1064,9 @@ export default function App() {
   useEffect(() => {
     setLoading(true);
     refresh();
-    const timer = setInterval(() => setClock(new Date()), 1000);
+    const timer = setInterval(() => {
+      if (navigator.onLine && !document.hidden) refresh();
+    }, 60000);
     return () => clearInterval(timer);
   }, [refresh]);
 
@@ -2014,70 +1107,29 @@ export default function App() {
     await refresh();
   };
   const openAdmin = () => setAdminOpen(true);
-  const leader = players[0];
-
   if (!authReady) return <AccessLoading />;
-
   return (
-    <div className="app-shell">
-      <a className="skip-link" href="#leaderboard">
-        Skip to leaderboard
-      </a>
-      <Header
-        onOpenAdmin={openAdmin}
-        adminUser={adminUser}
+    <>
+      <Dashboard
+        players={players}
+        history={history}
+        loading={loading}
+        error={error}
         online={online}
+        refreshing={refreshing}
+        lastUpdated={lastUpdated}
+        onRefresh={refresh}
+        onOpenAdmin={openAdmin}
         darkMode={darkMode}
         onToggleTheme={() => setDarkMode((value) => !value)}
       />
-      <main>
-        <Hero players={players} history={history} onOpenAdmin={openAdmin} />
-        {!isSupabaseConfigured && (
-          <div className="preview-notice" role="status">
-            Preview mode · Sample league data is stored in this browser. Changes
-            here do not update the live league.
-          </div>
-        )}
-        <section className="ticker" aria-label="League status">
-          <span className="ticker-label">The current table</span>
-          <span className="ticker-copy">
-            {leader
-              ? `${leader.name} is listed first with ${leader.points_total} penalty point${Number(leader.points_total) === 1 ? "" : "s"}.`
-              : "The dice are warming up. The first point is still available."}
-          </span>
-          <span className="ticker-time" title="Europe/Paris time">
-            {clock.toLocaleTimeString("en-GB", {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-              timeZone: "Europe/Paris",
-            })}
-          </span>
-        </section>
-        <Leaderboard players={players} history={history} loading={loading} />
-        <LeagueGuide players={players} history={history} />
-        {!online && (
-          <div className="offline-banner" role="status">
-            You are offline. The last loaded scores are still visible, but new
-            updates will wait for a connection.
-          </div>
-        )}
-        {error && (
-          <div className="global-error" role="alert">
-            {error}{" "}
-            <button onClick={refresh} type="button">
-              Try again
-            </button>
-          </div>
-        )}
-      </main>
-      <Footer onOpenAdmin={openAdmin} eventCount={history.length} />
       {adminOpen &&
         createPortal(
           <AdminPanel
             onClose={() => setAdminOpen(false)}
             players={players}
             events={events}
+            ledgerError={ledgerError}
             adminUser={adminUser}
             onLogin={handleLogin}
             onRefresh={refresh}
@@ -2086,6 +1138,6 @@ export default function App() {
           />,
           document.body,
         )}
-    </div>
+    </>
   );
 }

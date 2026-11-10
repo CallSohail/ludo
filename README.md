@@ -1,118 +1,53 @@
-# Ludo Super League, Evry 2026
+# Ludo Super League · Évry 2026
 
-A playful, live leaderboard for your Ludo nights. Standings and limited score history are public; the scorekeeper deck is protected by Supabase Auth. Production score awards are stored as signed, hash-linked events.
+A public penalty dashboard and private scorekeeper, built with React, Vite, Recharts, and Supabase. Higher totals mean more recorded penalties, not more wins.
 
-## What is included
+## Dashboard
 
-- Public standings, top-three cards, player profiles, search, sorting, score comparisons, house rules, recent activity, and dark/light themes.
-- Admin panel for adding players and awarding 1 to 999 points (with the CRUD upgrade applied).
-- Consent checkbox before every point is published.
-- Hash-linked point ledger, each event records the previous hash, current time, admin identity, reason, and points.
-- Supabase Auth, Row Level Security, explicit Data API grants, and optional Supabase Realtime updates.
-- Demo mode with local browser storage, so the design can be previewed before Supabase is configured.
-- GitHub Pages workflow, using Vite's relative asset paths.
+- Overview with current totals, the top-three penalty race, daily awards and corrections, penalty-size distribution, standings, and recent changes.
+- Searchable player directory with stable ranks, name sorting, and latest recorded activity.
+- Linkable player workspaces with date filters, comparisons, score timelines, daily activity, award distribution, record details, paginated history, and CSV export.
+- Accessible chart data tables, tooltips, keyboard controls, and dark/light themes. Dates use Europe/Paris.
+- Scorekeeper sign-in, player creation/editing/archival, awards, explicit consent, negative-score protection, and signed correction workflows.
+- Cached public data, automatic refresh, separate history/standings/receipt failures, demo storage recovery, and a rendering recovery screen.
 
-## Run it locally
+Public history includes player IDs, point changes, timestamps and event numbers. Private score reasons and signed receipts stay in the scorekeeper. The database does not record complete matches: win rates, games played, opponents and winning streaks are deliberately not inferred from penalty events.
 
-```bash
-npm install
-cp .env.example .env
-npm run dev
-```
-
-Without Supabase values, the app runs in demo mode. The preview login is:
-
-```text
-username: admin
-password: ludo2026
-```
-
-Demo data is stored only in the current browser. Do not use demo mode for the public league.
-
-## Connect Supabase
-
-1. Create a Supabase project.
-2. Open the SQL Editor and run [`supabase/schema.sql`](./supabase/schema.sql). For the current public leaderboard and scorekeeper features, apply the existing [`enable-public-leaderboard.sql`](./supabase/enable-public-leaderboard.sql) and [`complete-crud-upgrade.sql`](./supabase/complete-crud-upgrade.sql) scripts after the schema. Review these scripts against an existing project before applying them; this frontend redesign does not change the database.
-3. Create the shared viewer in **Authentication → Users → Add user**:
-   - Email: `sohail.cs951+ludoguys@gmail.com`
-   - Password: set the shared password privately in Supabase
-   - Enable auto-confirm when the dashboard offers it
-4. The site maps the public username `ludoguys` to that internal Auth email. Never put the shared password in this repository.
-5. Create a separate Auth user for the scorekeeper, using the email and password you want for the admin deck.
-6. Add the scorekeeper to the admin allow-list. Replace the email in this query:
-
-```sql
-insert into public.admin_profiles (user_id, display_name, is_admin)
-select id, 'Sohail, chief scorekeeper', true
-from auth.users
-where email = 'your-admin-email@example.com'
-on conflict (user_id) do update
-set is_admin = true, display_name = excluded.display_name;
-```
-
-7. Copy your project URL and publishable key into `.env`:
-
-```text
-VITE_SUPABASE_URL=https://your-project-ref.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
-```
-
-Use only the publishable key in this frontend. Never place a `service_role` or secret key in GitHub Pages code.
-
-## Your Sohail Hand font
-
-The app supports the font URL you supplied. The URL currently contains the placeholder `YOUR-USERNAME`, so replace it with the GitHub username that owns the `sohail-hand` repository:
-
-```text
-VITE_SOHAIL_FONT_URL=https://cdn.jsdelivr.net/gh/YOUR-USERNAME/sohail-hand@v1.0/SohailHand-Regular.woff2
-```
-
-If that value is left unchanged, the site gracefully falls back to the included Google fonts, Baloo 2 and Space Grotesk.
-
-## Publish on GitHub Pages
-
-1. Push this folder to a GitHub repository.
-2. In the repository settings, add these Actions secrets:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_PUBLISHABLE_KEY`
-   - `VITE_SOHAIL_FONT_URL`
-3. In **Settings → Pages**, choose **GitHub Actions** as the source.
-4. Push to `main`. The workflow in `.github/workflows/deploy.yml` builds and publishes the static app.
-
-The Supabase URL and publishable key are public frontend values. The real protection comes from Auth, RLS, and the admin-only database functions in the schema.
-
-## Important edge cases handled
-
-- Duplicate player names are rejected, case-insensitively.
-- Blank or very short names and reasons are rejected.
-- Awards use whole numbers from 1 through 999 with the existing CRUD database upgrade. The original schema alone supports only 1 through 9.
-- Inactive or missing players cannot receive points.
-- Two simultaneous point submissions are serialized before the previous hash is read.
-- Equal scores are ordered by the earlier player's creation time, so the board does not jump randomly.
-- A failed network request leaves the visible board unchanged and shows a retry message.
-- Fireworks are also disabled for users who prefer reduced motion.
-
-## Verify the chain
-
-In Supabase SQL Editor, this query should return zero rows when the event chain is intact:
-
-```sql
-with ordered as (
-  select *, lag(event_hash) over (order by event_number) as expected_previous_hash
-  from public.point_events
-)
-select event_number, previous_hash, expected_previous_hash
-from ordered
-where event_number > 1 and previous_hash <> expected_previous_hash;
-```
-
-## Frontend verification
+## Run and verify
 
 ```bash
 npm ci
+npm run dev
+```
+
+Without Supabase configuration, the app uses isolated browser demo storage. Demo scorekeeper credentials: `admin` / `ludo2026`. Demo scores do not update the live league. When persistent storage is blocked, demo state lasts only for the browser session.
+
+```bash
 npx playwright install chromium
 npm test
 npm run build
 ```
 
-Tests use isolated local demo data and do not write to the production league. See [DESIGN.md](./DESIGN.md) for the visual direction, accessibility work, test coverage, and Unslop attribution.
+Tests include eight analytics cases, five production-configuration cases, and ten browser cases: awards, corrections, consent, search, ranking, date filters, comparison, pagination, CSV downloads, dialog keyboard behavior, missing profiles, empty/corrupted/blocked storage, long names, large scores, mobile/tablet layouts, themes, offline status, and automated WCAG AA checks. Analytics cases cover signed changes, real timestamps, daylight-saving boundaries, deduplication, date ranges, empty data and CSV formula protection. Tests explicitly disable production Supabase variables.
+
+Fonts are bundled locally. Charts and database libraries are split into cacheable bundles.
+
+## Production setup
+
+The existing live site uses GitHub Pages and Supabase. This redesign does not alter its database schema, roles or RLS policies.
+
+1. Put the public frontend values in GitHub Actions secrets: `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. Use a publishable key or the legacy public anon key. Never use a secret/service-role key.
+2. Set **Settings → Pages → Source → GitHub Actions**.
+3. Production builds run `npm run build:production`; this blocks missing backend configuration and privileged frontend keys. Pull requests use a demo build, run all tests, and never deploy.
+4. A push to `main` runs tests, builds with the configured production values, and deploys the Pages artifact. The existing URL is <https://callsohail.github.io/ludo/>.
+5. Verify the live overview, player profile, current scores, history, fonts, chart assets and network requests after deployment. Validate scoring permissions with an authorized scorekeeper account before changing production scores.
+
+For a **new Supabase project**, inspect the existing SQL files and apply the relevant setup in order: `supabase/schema.sql`, `supabase/enable-public-leaderboard.sql`, and `supabase/complete-crud-upgrade.sql`. The original schema alone supports 1–9 awards; the existing CRUD upgrade supports 1–999 and corrections. Create a separate scorekeeper Auth user and add its user ID to `public.admin_profiles` with `is_admin = true`. Review these scripts against an existing project before running them; do not reapply old repair scripts blindly.
+
+Keep RLS and the admin-only RPC permission checks enabled. Public history must expose only the permitted fields. Backend backups, database advisor checks, email delivery, user provisioning, and live admin write permissions require access to the Supabase project; frontend tests do not establish those settings.
+
+## Data interpretation
+
+Current standings are all-time totals. Charts show available recorded changes within the selected period, starting at zero for that period. They can differ from current totals when earlier entries or opening balances are absent. Daily bars omit days without available entries and say so. Corrections are negative values and do not inflate the number or average of positive awards. Equal totals use player creation order.
+
+See [DESIGN.md](./DESIGN.md) and [PRODUCT.md](./PRODUCT.md) for the design and product contracts. Design guidance includes [Unslop](https://github.com/heydamir/unslop) by Damir Sokolovsky ([@heydamir](https://x.com/heydamir)), CC BY 4.0; [Anthropic frontend-design](https://github.com/anthropics/skills/tree/main/skills/frontend-design); [Impeccable](https://github.com/pbakaus/impeccable); and [Grafana dashboard guidance](https://grafana.com/docs/grafana/latest/visualizations/dashboards/build-dashboards/best-practices/).

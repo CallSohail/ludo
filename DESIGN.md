@@ -1,27 +1,31 @@
-# Ludo Super League interface
+# League dashboard design
 
-## Direction
+Mode: Operate. A working league dashboard, replacing the rejected marketing layout.
 
-- Product: a public penalty table and private scorekeeper for a group of Ludo players in Évry.
-- Character: friendly, competitive, accountable.
-- World: the scorebook beside the game table.
-- Moments: actual top-three score comparisons and a readable penalty table.
-- Signature: numbered entries repeated in rankings, house rules, and score receipts.
+## User tasks and composition
 
-Charcoal surfaces keep the table quiet. Lime green identifies scores and primary actions; dusty pink provides a small secondary accent. These choices support visual hierarchy and a warmer tone, rather than claiming universal psychological effects. Light mode uses darker green and rose for readable contrast.
+Players open the site to see the current standings, understand score changes, inspect their own history, and compare the available records. The scorekeeper signs in to maintain players and scores. A left navigation rail gives access to Overview, Players, Activity, and House rules. The first viewport contains a compact page heading, four summary figures, a large score movement panel and a narrower standings panel. The next row holds daily volume and distribution. There is no promotional hero or decorative chart.
 
-## What changed
+A player profile is a navigable workspace with a back control, identity and score summary, date filters, labelled score timeline, player comparison, daily activity, distribution, and a paginated event table. Empty history is explicit and does not become a fake zero-value chart. Public reasons remain private. Every chart has an accessible summary or data table.
 
-Replaced decorative signal charts, looping effects, texture, and scroll scenes with actual score comparisons. Added a house-rules guide explaining penalty totals, tie ordering, corrections, and scoring limits. Public activity uses the existing public score history; private reasons remain in the scorekeeper. Empty, preview, loading, offline, search, and error states have explicit messages.
+## Tokens
 
-The admin dialog traps keyboard focus, restores the opening control on close, and prevents background scrolling. Consent is unchecked for each new award. Player profiles retain keyboard navigation and explain when history is unavailable. Score history charts describe net recorded changes, which may differ from a total when initial or older entries are unavailable.
+- Page #0c0e10, sidebar #101215, panel #14171b, raised #1c2025, border #2b3037.
+- Primary text #f2f4f6, secondary #acb4bf, muted #929ca9.
+- Green #a7dc7c, pink #dda5bc, cyan #8ebccc; consistent series assignments, no color-only labels.
+- Light: page #f3f5f6, panel #ffffff, raised #edf0f2, border #d6dce1, ink #20272e, secondary #53616d; accessible dark green and rose.
+- One interface sans family; fixed scale 12, 13, 14, 16, 20, 24, 30px. Tabular numbers for metrics and axes.
+- Desktop sidebar 224px; main fluid, capped at 1600px; 28px outer padding. Panels use 20px padding, 12px radius. Controls 40–44px, inputs 44px.
+- Responsive: sidebar becomes a horizontal navigation on tablets and a compact header with menu on phones. Charts stack, table columns reduce, profile remains in the page flow.
 
-## Validation
+## Engineering constraints
 
-`npm test` runs Playwright against isolated browser demo data, with production Supabase variables explicitly disabled. It covers stable ties, search recovery, sorting with original ranks, scoring consent, activity updates, sign-in failure, password visibility, focus trapping, Escape, profile focus restoration, empty leagues, long names, large scores, 320–1440px layouts, themes, and offline status.
+History analytics use available events, not assumed match data. Positive awards, negative corrections, missing dates, zero totals, partial history, archived IDs, and ties need explicit handling. Date grouping uses Europe/Paris. Charts preserve true time spacing, provide tick labels and hover/focus values, and avoid stretched SVG points. All/7/30/90 day filters apply to history metrics and charts; current standings remain all-time and are labelled accordingly. CSV output escapes spreadsheet formula prefixes.
 
-`npm run build` creates the Pages bundle. CI runs browser tests before building and deploying. A successful demo test does not establish that a production Supabase project has the required schema or admin permissions; production scoring must use its existing database setup.
+## Guidance
 
-## Design guidance credit
+[Unslop](https://github.com/heydamir/unslop), by Damir Sokolovsky ([@heydamir](https://x.com/heydamir)), CC BY 4.0; [Anthropic frontend-design](https://github.com/anthropics/skills/tree/main/skills/frontend-design); [Impeccable](https://github.com/pbakaus/impeccable), by Paul Bakaus; and [Grafana dashboard guidance](https://grafana.com/docs/grafana/latest/visualizations/dashboards/build-dashboards/best-practices/). Interface implementation is original. The user explicitly requested autonomous direction and replacement of the prior design; no concept-selection wait is required. Impeccable's engine could not run in the default cache location; its references were read directly.
 
-This redesign follows [Unslop](https://github.com/heydamir/unslop), created by Damir Sokolovsky ([@heydamir](https://x.com/heydamir)), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The interface code is original; no reference artwork is copied.
+## Verification record
+
+Eight analytics tests, five production-configuration tests, and ten browser tests cover the shipped flows. The automated WCAG AA checks cover overview themes, a player workspace and the sign-in dialog; they are not a substitute for a complete accessibility audit. Desktop (1695px) and phone (390px) captures were inspected with live public data copied into a local browser fixture. An independent reviewer identified compressed calendar gaps in daily bars; normalized day anchors and numeric time axes fixed it, and the reviewer scored that finding resolved. The frontend does not change Supabase schema or production score data.

@@ -1,17 +1,17 @@
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import App from './App';
-import { config } from './config';
-import './styles.css';
+import ErrorBoundary from "./ErrorBoundary";
+import "@fontsource/dm-sans/latin-400.css";
+import "@fontsource/dm-sans/latin-500.css";
+import "@fontsource/dm-sans/latin-600.css";
+import React from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App";
+import "./styles.css";
+import "./dashboard.css";
 
-if (config.sohailFontUrl && !config.sohailFontUrl.includes('YOUR-USERNAME')) {
-  const fontStyle = document.createElement('style');
-  fontStyle.textContent = `@font-face { font-family: 'Sohail Hand'; src: url('${config.sohailFontUrl}') format('woff2'); font-style: normal; font-display: swap; }`;
-  document.head.appendChild(fontStyle);
-}
-
-createRoot(document.getElementById('root')).render(
+createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </React.StrictMode>,
 );
