@@ -33,6 +33,9 @@ test("stable ties, search recovery, and sorting retain original ranks", async ({
 }) => {
   await open(page);
   await page.getByRole("link", { name: "Players", exact: false }).click();
+  await expect(
+    page.getByRole("heading", { name: "The players", exact: true }),
+  ).toBeVisible();
   await expect(page.locator(".dash-player-row").first()).toContainText(
     "Saboor",
   );
@@ -249,4 +252,35 @@ test("corrections require consent and cannot create a negative score", async ({
   await page.getByRole("link", { name: "Activity", exact: true }).click();
   await expect(page.locator(".dash-event-table")).toContainText("-1");
   await expect(page.locator(".dash-event-table")).toContainText("Correction");
+});
+
+test("navigation preserves search typed before a delayed hashchange event", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.addEventListener(
+      "hashchange",
+      (event) => {
+        if (window.navigationTestDelayed) return;
+        event.stopImmediatePropagation();
+        window.navigationTestDelayed = true;
+        setTimeout(() => {
+          window.dispatchEvent(new HashChangeEvent("hashchange"));
+          window.navigationTestSettled = true;
+        }, 600);
+      },
+      true,
+    );
+  });
+  await open(page);
+  await page.getByRole("link", { name: "Players", exact: false }).click();
+  await page.getByRole("textbox", { name: "Search players" }).fill("nobody");
+  await page.waitForFunction(() => window.navigationTestSettled === true);
+  await expect(
+    page.getByRole("heading", { name: "The players", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("textbox", { name: "Search players" }),
+  ).toHaveValue("nobody");
+  await expect(page.getByText("No players match that search")).toBeVisible();
 });

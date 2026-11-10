@@ -72,8 +72,14 @@ function routeFromHash() {
   } catch {
     hash = "overview";
   }
-  if(hash==="verify"||hash.startsWith("verify="))return {section:"verify",verification:hash.slice(7)};
-  if(hash.startsWith("issued="))return {section:"verify",verification:hash.slice(7),showCertificate:true};
+  if (hash === "verify" || hash.startsWith("verify="))
+    return { section: "verify", verification: hash.slice(7) };
+  if (hash.startsWith("issued="))
+    return {
+      section: "verify",
+      verification: hash.slice(7),
+      showCertificate: true,
+    };
   if (hash.startsWith("certificates="))
     return {
       section: "certificates",
@@ -1069,6 +1075,8 @@ export default function Dashboard({
   }, []);
   const navigate = (id) => {
     window.location.hash = id;
+    setRoute(routeFromHash());
+    window.scrollTo({ top: 0, behavior: "instant" });
     setMenu(false);
   };
   const openCertificate = (id) =>
@@ -1107,6 +1115,18 @@ export default function Dashboard({
           {sections.map(({ id, label, icon: Icon }) => (
             <a
               href={`#${id}`}
+              onClick={(event) => {
+                if (
+                  event.button !== 0 ||
+                  event.metaKey ||
+                  event.ctrlKey ||
+                  event.shiftKey ||
+                  event.altKey
+                )
+                  return;
+                event.preventDefault();
+                navigate(id);
+              }}
               key={id}
               aria-current={route.section === id ? "page" : undefined}
             >
@@ -1208,7 +1228,14 @@ export default function Dashboard({
               onCertificate={openCertificate}
             />
           )}
-          {route.section==="verify" ? <Verification id={route.verification} showCertificate={route.showCertificate} adminUser={adminUser} onOpenAdmin={onOpenAdmin}/> : loading ? (
+          {route.section === "verify" ? (
+            <Verification
+              id={route.verification}
+              showCertificate={route.showCertificate}
+              adminUser={adminUser}
+              onOpenAdmin={onOpenAdmin}
+            />
+          ) : loading ? (
             <div
               className="dash-skeleton"
               aria-label="Loading league"
