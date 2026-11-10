@@ -11,7 +11,7 @@ A public penalty dashboard and private scorekeeper, built with React, Vite, Rech
 - Scorekeeper sign-in, player creation/editing/archival, awards, explicit consent, negative-score protection, and signed correction workflows.
 - Cached public data, automatic refresh, separate history/standings/receipt failures, demo storage recovery, and a rendering recovery screen.
 
-Public history includes player IDs, point changes, timestamps and event numbers. Private score reasons and signed receipts stay in the scorekeeper. The database does not record complete matches: win rates, games played, opponents and winning streaks are deliberately not inferred from penalty events.
+Public history includes player IDs, point changes, timestamps and event numbers. Private score reasons and signed receipts stay in the scorekeeper unless an approved scorekeeper explicitly publishes selected reasons on an issued certificate. The database does not record complete matches: win rates, games played, opponents and winning streaks are deliberately not inferred from penalty events.
 
 ## Run and verify
 
@@ -34,7 +34,7 @@ Fonts are bundled locally. Charts and database libraries are split into cacheabl
 
 ## Production setup
 
-The existing live site uses GitHub Pages and Supabase. This redesign does not alter its database schema, roles or RLS policies.
+The existing live site uses GitHub Pages and Supabase. The certificate registry adds the isolated schema, table and guarded RPCs in `supabase/verified-certificates.sql`; existing scoring tables and totals are unchanged.
 
 1. Put the public frontend values in GitHub Actions secrets: `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. Use a publishable key or the legacy public anon key. Never use a secret/service-role key.
 2. Set **Settings → Pages → Source → GitHub Actions**.
@@ -56,8 +56,18 @@ See [DESIGN.md](./DESIGN.md) and [PRODUCT.md](./PRODUCT.md) for the design and p
 
 Open **Certificates** in the navigation, or **View player certificate** on a profile. Every active player has an individual certificate based on current all-time position and available history. The current #1 has a gold crown edition; other positions have matching podium or league editions. The #1 spotlight follows the current table and respects reduced-motion preferences.
 
-Review the automatic commendations, add an optional personal message, then choose **Download PDF** (one A4 landscape page) or **Download PNG** (3500 × 2475 pixels). Both exports use the same artwork as the preview, with self-hosted fonts loaded before rendering. PDF uses high-resolution image artwork; it is not a tagged or digitally signed document. Certificate content also appears as accessible text in the section.
+Certificates use centered DM Sans typography on charcoal, with lime green, a small pink accent and a gold crown emblem for position #1. The same renderer drives the preview and exports. Use **Open full-size preview** to inspect small text on a phone.
 
-Messages are drafts saved on the current device, separately for each player; they are not shared or stored in Supabase. If browser storage is blocked, drafts remain usable during the visit and a notice explains the limitation. Private scorekeeper reasons never enter the public certificate automatically. Dates and snapshot references identify the standings at download time; later rank changes do not update existing files.
+Add a personal message and download an explicitly marked **unissued preview**, or sign in as scorekeeper to issue a permanent record. Scorekeepers can select up to 100 table comments from the latest 1,000 entries for that player. Comments are never included automatically: publication requires explicit approval. Issuance freezes the server-side recipient, rank, points, complete-history metrics, message and selected original comments. The server rejects stale rank/points, invalid comment ownership, unauthorised users and mismatched duplicate requests.
 
-Certificate checks cover ties, zero-point and unavailable-history recognition, missing/archived player links, safe filenames, per-player drafts, maximum messages, mobile layout, reduced motion, all-player preview readiness, and the actual downloaded PDF/PNG dimensions. The complete suite now contains 19 Node tests and 16 browser tests.
+Issued certificates have a UUID, a SHA-256 snapshot fingerprint and a public verification page at `#verify=UUID`. QR codes and printed links appear on every page; PDFs also contain clickable link annotations. The page displays the original recipient, facts and published comments, with explicit missing, unavailable, demo and revoked states. It compares the public record, not the authenticity of a potentially modified image. Scorekeepers can revoke with a public reason; the original snapshot remains visible. Latest issued records for a player can be reopened from their certificate section, including after later changes to the standings.
+
+**PDF** exports use A4 landscape pages with 3500 × 2475 artwork (about 300 DPI). **PNG** exports use the same resolution. Multiple-page recognitions include every selected comment on attachment pages; long or multiline personal commendations also receive an attachment. Multiple PNG pages download together as a ZIP. PDF is image-based, not tagged or digitally signed; the complete content is also available as accessible HTML.
+
+Draft messages stay on the current device separately for each player. Issued production records are persisted in Supabase. Demo issuance is clearly labelled and stores records only in that browser; its links do not verify on another device.
+
+For a new project, apply `supabase/verified-certificates.sql` after the existing league setup. The live Ludo project already has the registry migration. Public clients can read only approved published record fields. Only approved authenticated scorekeepers can issue/revoke through guarded functions; no client can directly insert, update or delete registry records. Backend transaction tests verified real-role issuance, comment ownership, replay, stale-score rejection, revocation, anonymous lookup and non-admin denial, with all test writes rolled back.
+
+Tests cover per-player drafts, all-player render readiness, empty/archived/zero/tied states, long names and messages, comment publication consent, issuance/read-back/revocation, genuine PDF link targets, multipage PNG ZIP contents and dimensions, sign-in return, full-size preview keyboard behavior and responsive accessibility checks.
+
+Current automated suite: 19 Node tests and 20 browser tests (39 total).

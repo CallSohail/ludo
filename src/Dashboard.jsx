@@ -1,3 +1,4 @@
+import Verification from "./Verification";
 import Certificates, { LeaderSpotlight } from "./Certificates";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -71,6 +72,8 @@ function routeFromHash() {
   } catch {
     hash = "overview";
   }
+  if(hash==="verify"||hash.startsWith("verify="))return {section:"verify",verification:hash.slice(7)};
+  if(hash.startsWith("issued="))return {section:"verify",verification:hash.slice(7),showCertificate:true};
   if (hash.startsWith("certificates="))
     return {
       section: "certificates",
@@ -1022,6 +1025,7 @@ function Profile({
   );
 }
 export default function Dashboard({
+  adminUser,
   players,
   history,
   loading,
@@ -1204,7 +1208,7 @@ export default function Dashboard({
               onCertificate={openCertificate}
             />
           )}
-          {loading ? (
+          {route.section==="verify" ? <Verification id={route.verification} showCertificate={route.showCertificate} adminUser={adminUser} onOpenAdmin={onOpenAdmin}/> : loading ? (
             <div
               className="dash-skeleton"
               aria-label="Loading league"
@@ -1446,6 +1450,8 @@ export default function Dashboard({
                   lastUpdated={lastUpdated}
                   selectedId={route.certificate}
                   onSelect={openCertificate}
+                  adminUser={adminUser}
+                  onOpenAdmin={onOpenAdmin}
                 />
               )}
               {route.section === "rules" && <Rules onAdmin={onOpenAdmin} />}

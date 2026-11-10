@@ -50,3 +50,31 @@ test("certificate selection, editable message and canvas preview have accessible
     expect(result.violations).toEqual([]);
   }
 });
+test("certificate verification has accessible empty and missing states in both themes", async ({
+  page,
+}) => {
+  await page.goto("/#verify");
+  for (const theme of ["dark", "light"]) {
+    if (theme === "light")
+      await page.getByRole("button", { name: "Switch to light theme" }).click();
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+  }
+  await page.getByLabel("Certificate ID or verification link").fill("unknown");
+  await page.getByRole("button", { name: "Check certificate" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Certificate not found" }),
+  ).toBeVisible();
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+        .analyze()
+    ).violations,
+  ).toEqual([]);
+});
