@@ -1,9 +1,9 @@
 export const PARIS = "Europe/Paris";
 export const SERIES = [
   "var(--chart-green)",
-  "var(--chart-pink)",
+  "var(--chart-gray)",
   "var(--chart-blue)",
-  "var(--chart-gold)",
+  "var(--chart-stone)",
 ];
 export const numeric = (value) =>
   Number.isFinite(Number(value)) ? Number(value) : 0;
@@ -148,12 +148,25 @@ export function exportHistory(
 ) {
   const names = new Map(players.map((p) => [p.id, p.name]));
   const rows = [
-    ["Event", "Player", "Point change", "Recorded at (UTC)"],
+    [
+      "Event",
+      "Player",
+      "Point change",
+      "Recorded at (UTC)",
+      "Type",
+      "Public reason",
+    ],
     ...events.map((e) => [
       e.event_number || "",
-      names.get(e.player_id) || "Archived player",
+      names.get(e.player_id) || e.player_name || "Archived player",
       e.points,
       new Date(e.time).toISOString(),
+      e.starting_balance
+        ? "Starting balance"
+        : e.event_type === "adjustment" || e.points < 0
+          ? "Correction"
+          : "Penalty",
+      e.reason || "",
     ]),
   ];
   const blob = new Blob(
@@ -166,4 +179,54 @@ export function exportHistory(
   a.download = filename;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+const relative = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+
+export function relativeDate(value, now = Date.now()) {
+  const elapsed = (value - now) / 1000;
+  for (const [unit, seconds] of [
+    ["year", 31536000],
+    ["month", 2592000],
+    ["day", 86400],
+    ["hour", 3600],
+    ["minute", 60],
+  ]) {
+    if (Math.abs(elapsed) >= seconds)
+      return relative.format(Math.trunc(elapsed / seconds), unit);
+  }
+  return "just now";
+}
+
+export function rankTimeline(events, players, playerId) {
+  const totals = new Map(
+    players.map((player) => [player.id, numeric(player.points_total)]),
+  );
+  const ordered = [...players].sort(
+    (a, b) =>
+      new Date(a.created_at) - new Date(b.created_at) ||
+      String(a.id).localeCompare(String(b.id)),
+  );
+  const order = new Map(ordered.map((player, index) => [player.id, index]));
+  for (const event of events)
+    if (totals.has(event.player_id))
+      totals.set(event.player_id, totals.get(event.player_id) - event.points);
+  const rank = () =>
+    ordered.filter(
+      (player) =>
+        totals.get(player.id) > totals.get(playerId) ||
+        (totals.get(player.id) === totals.get(playerId) &&
+          order.get(player.id) < order.get(playerId)),
+    ).length + 1;
+  const rows = [];
+  for (const event of events) {
+    if (!totals.has(event.player_id)) continue;
+    totals.set(event.player_id, totals.get(event.player_id) + event.points);
+    if (!event.starting_balance) {
+      const row = { time: event.time, rank: rank() };
+      if (rows.at(-1)?.time === row.time) rows[rows.length - 1] = row;
+      else rows.push(row);
+    }
+  }
+  return rows;
 }

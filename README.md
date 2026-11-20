@@ -4,7 +4,7 @@ A public penalty dashboard and private scorekeeper, built with React, Vite, Rech
 
 ## Dashboard
 
-- Overview with current totals, the top-three penalty race, daily awards and corrections, penalty-size distribution, standings, and recent changes.
+- Standings with the full leaderboard, recent changes and penalty race. Activity includes searchable history, player and date filters, gross and net points, and filtered CSV.
 - Searchable player directory with stable ranks, name sorting, and latest recorded activity.
 - Linkable player workspaces with date filters, comparisons, score timelines, daily activity, award distribution, record details, paginated history, and CSV export.
 - Accessible chart data tables, tooltips, keyboard controls, and dark/light themes. Dates use Europe/Paris.
@@ -52,9 +52,19 @@ Current standings are all-time totals. Charts show available recorded changes wi
 
 See [DESIGN.md](./DESIGN.md) and [PRODUCT.md](./PRODUCT.md) for the design and product contracts. Design guidance includes [Unslop](https://github.com/heydamir/unslop) by Damir Sokolovsky ([@heydamir](https://x.com/heydamir)), CC BY 4.0; [Anthropic frontend-design](https://github.com/anthropics/skills/tree/main/skills/frontend-design); [Impeccable](https://github.com/pbakaus/impeccable); and [Grafana dashboard guidance](https://grafana.com/docs/grafana/latest/visualizations/dashboards/build-dashboards/best-practices/).
 
+## Scorekeeper and ledger
+
+Open **Rules → Scorekeeper access** to sign in. Approved scorekeepers can then open the desktop Scorekeeper button or the mobile plus button. Publishing requires whole points from 1 to 999, a reason of 3 to 180 characters and a witnessed confirmation. A separate checkbox shares the reason publicly. Earlier reasons remain private.
+
+The database serializes writes, reads the last hash inside the lock, and retries with the same request ID after an ambiguous response. Undo appends a signed reversal within ten seconds of the original write. A manually entered correction is a separate signed change. Neither can take a player below zero. Archive preserves history by player ID and removes the player from active scoring. The private Ledger includes all entries and verifies the original and current hash formats.
+
+The opening day (21 August 2026, Europe/Paris) appears as Starting balance and remains in totals and exports. Charts exclude its opening points. Gross includes positive entries, net subtracts negative corrections, and the current table counts active players.
+
+Apply the additive migration under `supabase/migrations/` after the base league schema and before deploying this frontend. The migration adds fields and RPCs while keeping existing receipts, balances and certificate records intact. Run write testing against an isolated database or the browser demo.
+
 ## Player certificates
 
-Open **Certificates** in the navigation, or **View player certificate** on a profile. Every active player has an individual certificate based on current all-time position and available history. The current #1 has a gold crown edition; other positions have matching podium or league editions. The #1 spotlight follows the current table and respects reduced-motion preferences.
+Open **Players → Certificates**, or **View player certificate** on a profile. Every active player has an individual certificate based on current all-time position and available history. The current #1 has a gold crown edition; other positions have matching podium or league editions. The #1 spotlight follows the current table and respects reduced-motion preferences.
 
 Certificates use centered DM Sans typography on charcoal, with lime green, a small pink accent and a gold crown emblem for position #1. The same renderer drives the preview and exports. Use **Open full-size preview** to inspect small text on a phone.
 

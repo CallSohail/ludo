@@ -4,16 +4,16 @@ Mode: Operate. A working league dashboard, replacing the rejected marketing layo
 
 ## User tasks and composition
 
-Players open the site to review penalty standings, understand score changes, and explore individual records. The top dock links to Overview, Players, Activity, Certificates, and House rules. On smaller screens the same dock floats along the bottom, with standings before metrics and charts. A compact, illustrated season header offers a direct path to the player directory.
+The scorebook opens with a compact season heading and crown card. A single leaderboard contains every active player. On a wide screen, it sits beside recent changes and the penalty race. On a phone, these sections stack in reading order. The navigation stays anchored across routes.
 
-Player profiles combine identity and score in one header, with date filters, a score timeline, comparisons, and event history below. Empty history has an explicit state. Every chart has an accessible data table or summary. The separate scorekeeper dialog uses the same theme and control styles as the public site.
+Player sheets open from the standings and player directory. They show the current total, rank, an estimated rank trend among currently active players, recent entries, and the certificate action. Full analysis is available inside the sheet. Rules use a single column with disclosure controls.
 
 ## Glass materials
 
-- Dark uses forest charcoal with mint highlights. Light uses pale mint with darker green controls. Rose provides a secondary tint, and gold marks the crown.
-- The header, dock, and dialog backdrop use frosted blur. Denser panels support readable text, tables, and charts. Reduced-transparency preferences use solid surfaces.
-- DM Sans, tabular figures, and persistent control labels keep dense scores readable. The content column is capped at 1328px and narrows to a single column on phones.
-- The overview uses an original transparent WebP illustration. The certificate workspace follows the active theme and the print artwork retains its charcoal palette.
+- Off-white #edf0ec, charcoal #151c19, soft gray #e1e6e3 and deep forest #273c30 form the fixed backdrop. Green carries actions and gold marks the crown.
+- Glass blurs at 20px with 1.4 saturation. Light panels use 64% white and dark panels use 10%. Buttons, form fields and plotted chart areas have solid backgrounds. Reduced transparency and unsupported blur use opaque surfaces.
+- System typography uses tight display tracking and tabular figures. Controls, cards and sheets use 12px, 20px and 28px radii, respectively.
+- A small dice icon identifies the league. Printed certificate artwork keeps its existing charcoal design.
 
 ## Engineering constraints
 

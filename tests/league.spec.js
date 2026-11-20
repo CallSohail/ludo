@@ -1,19 +1,10 @@
 import { test, expect } from "@playwright/test";
+import { loginScorekeeper, openScorekeeperLogin } from "./scorekeeper-helpers";
 async function open(page) {
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "League overview", exact: true }),
+    page.getByRole("heading", { name: "League standings", exact: true }),
   ).toBeVisible();
-}
-async function login(page) {
-  await page
-    .locator(".dash-top-actions")
-    .getByRole("button", { name: "Scorekeeper", exact: true })
-    .click();
-  await page.getByLabel("Username or email").fill("admin");
-  await page.getByLabel("Password", { exact: true }).fill("ludo2026");
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page.getByRole("dialog")).toContainText("Manage the league");
 }
 const events = () =>
   Array.from({ length: 18 }, (_, i) => ({
@@ -52,17 +43,21 @@ test("awards require new consent; current score and public activity update", asy
   page,
 }) => {
   await open(page);
-  await login(page);
+  await loginScorekeeper(page);
   const d = page.getByRole("dialog");
-  await d.getByLabel("Player", { exact: true }).selectOption("demo-saboor");
+  await d.getByRole("button", { name: "Saboor", exact: true }).click();
   await d.getByLabel("Reason for the penalty").fill("Lost the round");
-  const submit = d.getByRole("button", { name: "Sign and publish point" });
+  const submit = d.getByRole("button", {
+    name: "Publish +1 to Saboor",
+    exact: true,
+  });
   await expect(submit).toBeDisabled();
-  await d.getByRole("checkbox").check();
+  await d.getByRole("checkbox", { name: "Witnessed", exact: true }).check();
   await submit.click();
-  await expect(page.getByRole("status").last()).toContainText("point signed");
+  await expect(d.getByRole("status")).toContainText("Penalty published");
   await expect(submit).toBeDisabled();
-  await page.getByRole("button", { name: "Close admin panel" }).click();
+  await d.getByRole("button", { name: "Close admin panel" }).click();
+  await page.getByRole("link", { name: "Standings", exact: true }).click();
   await expect(page.locator(".dash-standing").first()).toContainText("9");
   await page.getByRole("link", { name: "Activity", exact: true }).click();
   await expect(page.locator(".dash-event-table")).toContainText("Saboor");
@@ -72,10 +67,7 @@ test("login failure, password visibility, focus trap, and focus restoration", as
   page,
 }) => {
   await open(page);
-  const trigger = page
-    .locator(".dash-top-actions")
-    .getByRole("button", { name: "Scorekeeper", exact: true });
-  await trigger.click();
+  const trigger = await openScorekeeperLogin(page);
   const d = page.getByRole("dialog");
   await expect(
     d.getByRole("button", { name: "Close admin panel" }),
@@ -107,6 +99,11 @@ test("player workspace has date-filtered graphs, comparison, data tables and pag
   await seed(page);
   await open(page);
   await page.locator(".dash-standing").first().click();
+  const profile = page.getByRole("dialog");
+  await expect(
+    profile.getByRole("heading", { name: "Rank trend", exact: true }),
+  ).toBeVisible();
+  await profile.getByText("Full player analysis", { exact: true }).click();
   await expect(page).toHaveURL(/#player=/);
   await expect(
     page.getByRole("heading", { name: "Saboor", exact: true }),
@@ -117,14 +114,16 @@ test("player workspace has date-filtered graphs, comparison, data tables and pag
   await page
     .getByRole("combobox", { name: "Compare with player" })
     .selectOption("demo-sohail");
-  await expect(page.locator(".dash-legend").first()).toContainText("Sohail");
-  await page.getByText("View chart data", { exact: true }).first().click();
+  await expect(profile.locator(".dash-legend").first()).toContainText("Sohail");
+  await profile.getByText("View chart data", { exact: true }).first().click();
   await expect(page.locator(".dash-chart-data[open] table")).toBeVisible();
   await expect(page.getByRole("button", { name: "Next page" })).toBeEnabled();
   await page.getByRole("button", { name: "Next page" }).click();
   await expect(page.locator(".dash-pagination")).toContainText("2 /");
   await page.getByRole("button", { name: "7 days", exact: true }).click();
-  await expect(page.locator(".dash-event-table tbody tr")).toHaveCount(5);
+  await expect(
+    profile.locator(".dash-event-table").last().locator("tbody tr"),
+  ).toHaveCount(5);
   await page.getByRole("button", { name: "All players", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "The players", exact: true }),
@@ -133,6 +132,10 @@ test("player workspace has date-filtered graphs, comparison, data tables and pag
 test("export creates a CSV of available history", async ({ page }) => {
   await seed(page);
   await open(page);
+  await page.getByRole("link", { name: "Activity", exact: true }).click();
+  await page
+    .getByRole("combobox", { name: "Player", exact: true })
+    .selectOption("demo-saboor");
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export", exact: true }).click();
   const download = await downloadPromise;
@@ -152,7 +155,7 @@ test("empty and missing player states are useful; invalid hashes do not crash", 
   ).toBeVisible();
   await page.goto("/#%invalid");
   await expect(
-    page.getByRole("heading", { name: "League overview", exact: true }),
+    page.getByRole("heading", { name: "League standings", exact: true }),
   ).toBeVisible();
 });
 test("phone and tablet layouts, large scores, long names, light theme and offline", async ({
@@ -183,6 +186,8 @@ test("phone and tablet layouts, large scores, long names, light theme and offlin
   await expect(
     page.getByRole("heading", { name: "A very long player name here" }),
   ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.emulateMedia({ colorScheme: "dark" });
   await page.getByRole("button", { name: "Switch to light theme" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "paper");
   for (const width of [320, 390, 768, 1024, 1440]) {
@@ -208,7 +213,7 @@ test("disabled and malformed browser storage do not prevent demo loading", async
     localStorage.setItem("ludo-super-league:events", '{"bad":true}');
   });
   await open(page);
-  await expect(page.locator(".dash-standing")).toHaveCount(6);
+  await expect(page.locator(".dash-standing")).toHaveCount(11);
   await page.addInitScript(() => {
     Storage.prototype.getItem = () => {
       throw new Error("blocked");
@@ -219,38 +224,34 @@ test("disabled and malformed browser storage do not prevent demo loading", async
   });
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: "League overview", exact: true }),
+    page.getByRole("heading", { name: "League standings", exact: true }),
   ).toBeVisible();
-  await expect(page.locator(".dash-standing")).toHaveCount(6);
+  await expect(page.locator(".dash-standing")).toHaveCount(11);
 });
 test("corrections require consent and cannot create a negative score", async ({
   page,
 }) => {
   await open(page);
-  await login(page);
+  await loginScorekeeper(page);
   const d = page.getByRole("dialog");
-  await d.getByRole("button", { name: "Players Add and edit" }).click();
-  await d.getByLabel("Player to correct").selectOption("demo-saboor");
+  await d.getByRole("button", { name: "Correct a score", exact: true }).click();
   await d.getByLabel("Correction points").fill("-999");
-  await d.getByLabel("Reason for correction").fill("Correct duplicate award");
-  const submit = d.getByRole("button", {
-    name: "Sign correction",
+  await d.getByLabel("Reason for the penalty").fill("Correct duplicate award");
+  const review = d.getByRole("button", {
+    name: "Review correction",
     exact: true,
   });
-  await expect(submit).toBeDisabled();
-  await d
-    .getByRole("checkbox", {
-      name: "I confirm this score correction and its reason",
-    })
-    .check();
-  await submit.click();
-  await expect(page.getByRole("status").last()).toContainText("negative");
+  await d.getByRole("checkbox", { name: "Witnessed", exact: true }).check();
+  await expect(review).toBeDisabled();
+  await expect(
+    d.getByText("A correction cannot make the total negative."),
+  ).toBeVisible();
   await d.getByLabel("Correction points").fill("-1");
-  await submit.click();
-  await expect(page.getByRole("status").last()).toContainText(
-    "Score correction signed",
-  );
-  await expect(submit).toBeDisabled();
+  await review.click();
+  await d
+    .getByRole("button", { name: "Publish -1 to Saboor", exact: true })
+    .click();
+  await expect(d.getByRole("status")).toContainText("Correction published");
   await page.getByRole("button", { name: "Close admin panel" }).click();
   await page.getByRole("link", { name: "Activity", exact: true }).click();
   await expect(page.locator(".dash-event-table")).toContainText("-1");
