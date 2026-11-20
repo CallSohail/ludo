@@ -4,25 +4,24 @@ Mode: Operate. A working league dashboard, replacing the rejected marketing layo
 
 ## User tasks and composition
 
-Players open the site to see the current standings, understand score changes, inspect their own history, and compare the available records. The scorekeeper signs in to maintain players and scores. A left navigation rail gives access to Overview, Players, Activity, and House rules. The first viewport contains a compact page heading, four summary figures, a large score movement panel and a narrower standings panel. The next row holds daily volume and distribution. There is no promotional hero or decorative chart.
+Players open the site to review penalty standings, understand score changes, and explore individual records. The top dock links to Overview, Players, Activity, Certificates, and House rules. On smaller screens the same dock floats along the bottom, with standings before metrics and charts. A compact, illustrated season header offers a direct path to the player directory.
 
-A player profile is a navigable workspace with a back control, identity and score summary, date filters, labelled score timeline, player comparison, daily activity, distribution, and a paginated event table. Empty history is explicit and does not become a fake zero-value chart. Public reasons remain private. Every chart has an accessible summary or data table.
+Player profiles combine identity and score in one header, with date filters, a score timeline, comparisons, and event history below. Empty history has an explicit state. Every chart has an accessible data table or summary. The separate scorekeeper dialog uses the same theme and control styles as the public site.
 
-## Tokens
+## Glass materials
 
-- Page #0c0e10, sidebar #101215, panel #14171b, raised #1c2025, border #2b3037.
-- Primary text #f2f4f6, secondary #acb4bf, muted #929ca9.
-- Green #a7dc7c, pink #dda5bc, cyan #8ebccc; consistent series assignments, no color-only labels.
-- Light: page #f3f5f6, panel #ffffff, raised #edf0f2, border #d6dce1, ink #20272e, secondary #53616d; accessible dark green and rose.
-- One interface sans family; fixed scale 12, 13, 14, 16, 20, 24, 30px. Tabular numbers for metrics and axes.
-- Desktop sidebar 224px; main fluid, capped at 1600px; 28px outer padding. Panels use 20px padding, 12px radius. Controls 40–44px, inputs 44px.
-- Responsive: sidebar becomes a horizontal navigation on tablets and a compact header with menu on phones. Charts stack, table columns reduce, profile remains in the page flow.
+- Dark uses forest charcoal with mint highlights. Light uses pale mint with darker green controls. Rose provides a secondary tint, and gold marks the crown.
+- The header, dock, and dialog backdrop use frosted blur. Denser panels support readable text, tables, and charts. Reduced-transparency preferences use solid surfaces.
+- DM Sans, tabular figures, and persistent control labels keep dense scores readable. The content column is capped at 1328px and narrows to a single column on phones.
+- The overview uses an original transparent WebP illustration. The certificate workspace follows the active theme and the print artwork retains its charcoal palette.
 
 ## Engineering constraints
 
 History analytics use available events, not assumed match data. Positive awards, negative corrections, missing dates, zero totals, partial history, archived IDs, and ties need explicit handling. Date grouping uses Europe/Paris. Charts preserve true time spacing, provide tick labels and hover/focus values, and avoid stretched SVG points. All/7/30/90 day filters apply to history metrics and charts; current standings remain all-time and are labelled accordingly. CSV output escapes spreadsheet formula prefixes.
 
 ## Guidance
+
+Glass material and lighting reference from the [Liquid Glass prompt library](https://liquidglassdesign.com/prompts).
 
 [Unslop](https://github.com/heydamir/unslop), by Damir Sokolovsky ([@heydamir](https://x.com/heydamir)), CC BY 4.0; [Anthropic frontend-design](https://github.com/anthropics/skills/tree/main/skills/frontend-design); [Impeccable](https://github.com/pbakaus/impeccable), by Paul Bakaus; and [Grafana dashboard guidance](https://grafana.com/docs/grafana/latest/visualizations/dashboards/build-dashboards/best-practices/). Interface implementation is original. The user explicitly requested autonomous direction and replacement of the prior design; no concept-selection wait is required. Impeccable's engine could not run in the default cache location; its references were read directly.
 

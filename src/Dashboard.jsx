@@ -7,6 +7,7 @@ import {
   Users,
   Activity,
   BookOpen,
+  ShieldCheck,
   Dices,
   Settings2,
   ArrowUpRight,
@@ -18,7 +19,6 @@ import {
   ChevronRight,
   Sun,
   Moon,
-  Menu,
   X,
   WifiOff,
   AlertCircle,
@@ -62,8 +62,8 @@ const sections = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "players", label: "Players", icon: Users },
   { id: "activity", label: "Activity", icon: Activity },
-  { id: "certificates", label: "Certificates", icon: Award },
-  { id: "rules", label: "House rules", icon: BookOpen },
+  { id: "certificates", label: "Certificates", short: "Awards", icon: Award },
+  { id: "rules", label: "House rules", short: "Rules", icon: BookOpen },
 ];
 function routeFromHash() {
   let hash;
@@ -788,8 +788,8 @@ function Rules({ onAdmin }) {
           <h3>Privacy stays with the scorekeeper</h3>
           <p>
             Public records include point changes, timestamps and entry numbers.
-            Private reasons and signed receipts are available only in the
-            scorekeeper.
+            Signed receipts stay in the scorekeeper. Scoring comments are public
+            only when a scorekeeper publishes them on a certificate.
           </p>
           <h3>Match statistics need match records</h3>
           <p>
@@ -1045,7 +1045,6 @@ export default function Dashboard({
   onToggleTheme,
 }) {
   const [route, setRoute] = useState(routeFromHash);
-  const [menu, setMenu] = useState(false);
   const [period, setPeriod] = useState("all");
   const events = useMemo(() => cleanHistory(history), [history]);
   const selectedEvents = useMemo(
@@ -1060,30 +1059,21 @@ export default function Dashboard({
   useEffect(() => {
     const update = () => {
       setRoute(routeFromHash());
-      setMenu(false);
       window.scrollTo({ top: 0, behavior: "instant" });
     };
     window.addEventListener("hashchange", update);
     return () => window.removeEventListener("hashchange", update);
   }, []);
-  useEffect(() => {
-    const close = (e) => {
-      if (e.key === "Escape") setMenu(false);
-    };
-    window.addEventListener("keydown", close);
-    return () => window.removeEventListener("keydown", close);
-  }, []);
   const navigate = (id) => {
     window.location.hash = id;
     setRoute(routeFromHash());
     window.scrollTo({ top: 0, behavior: "instant" });
-    setMenu(false);
   };
   const openCertificate = (id) =>
     navigate(`certificates=${encodeURIComponent(id)}`);
   const openPlayer = (id) => navigate(`player=${encodeURIComponent(id)}`);
   return (
-    <div className={`dash-app ${menu ? "dash-menu-open" : ""}`}>
+    <div className="dash-app">
       <a
         className="skip-link"
         href="#main-content"
@@ -1094,84 +1084,50 @@ export default function Dashboard({
       >
         Skip to dashboard
       </a>
-      <aside className="dash-sidebar">
-        <a className="dash-brand" href="#overview">
-          <span>
-            <Dices size={24} />
-          </span>
-          <div>
-            <strong>Ludo</strong>
-            <small>Super League</small>
-          </div>
-        </a>
-        <div className="dash-league-label">
-          <span className="dash-season-mark">26</span>
-          <div>
-            <strong>Évry league</strong>
-            <small>2026 season</small>
-          </div>
-        </div>
-        <nav aria-label="League navigation">
-          {sections.map(({ id, label, icon: Icon }) => (
-            <a
-              href={`#${id}`}
-              onClick={(event) => {
-                if (
-                  event.button !== 0 ||
-                  event.metaKey ||
-                  event.ctrlKey ||
-                  event.shiftKey ||
-                  event.altKey
-                )
-                  return;
-                event.preventDefault();
-                navigate(id);
-              }}
-              key={id}
-              aria-current={route.section === id ? "page" : undefined}
-            >
-              <Icon size={18} />
-              {label}
-              {id === "players" && <span>{players.length}</span>}
-            </a>
-          ))}
-        </nav>
-        <div className="dash-sidebar-bottom">
-          <div className="dash-private">
-            <Settings2 size={18} />
-            <strong>Keep the record fair</strong>
-            <p>Manage players and publish signed score changes.</p>
-            <button className="dash-button" onClick={onOpenAdmin}>
-              Open scorekeeper
-              <ArrowUpRight size={16} />
-            </button>
-          </div>
-          <p>
-            Friendly competition.
-            <br />
-            Every point accounted for.
-          </p>
-        </div>
-      </aside>
       <div className="dash-workspace">
         <header className="dash-topbar">
-          <div className="dash-breadcrumb">
-            <button
-              className="dash-menu-button"
-              aria-label={menu ? "Close navigation" : "Open navigation"}
-              aria-expanded={menu}
-              onClick={() => setMenu((v) => !v)}
-            >
-              {menu ? <X size={20} /> : <Menu size={20} />}
-            </button>
-            <span>Ludo Super League</span>
-            <ChevronRight size={14} />
-            <strong>
-              {profile
-                ? "Player profile"
-                : sections.find((s) => s.id === route.section)?.label}
-            </strong>
-          </div>
+          <a className="dash-brand" href="#overview">
+            <span>
+              <Dices size={22} />
+            </span>
+            <div>
+              <strong>Ludo</strong>
+              <small>Super League</small>
+            </div>
+          </a>
+          <nav className="league-dock" aria-label="League navigation">
+            {sections.map(({ id, label, short, icon: Icon }) => (
+              <a
+                href={`#${id}`}
+                onClick={(event) => {
+                  if (
+                    event.button !== 0 ||
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  )
+                    return;
+                  event.preventDefault();
+                  navigate(id);
+                }}
+                key={id}
+                aria-label={label}
+                aria-current={
+                  route.section === id ||
+                  (id === "certificates" && route.section === "verify")
+                    ? "page"
+                    : undefined
+                }
+              >
+                <Icon size={17} />
+                <span className="dock-label">{label}</span>
+                <span className="dock-label-short" aria-hidden="true">
+                  {short || label}
+                </span>
+              </a>
+            ))}
+          </nav>
           <div className="dash-top-actions">
             <span className={`dash-status ${!online ? "offline" : ""}`}>
               <i />
@@ -1192,7 +1148,11 @@ export default function Dashboard({
             >
               {darkMode ? <Sun size={17} /> : <Moon size={17} />}
             </button>
-            <button className="dash-button primary" onClick={onOpenAdmin}>
+            <button
+              className="dash-button primary"
+              aria-label="Scorekeeper"
+              onClick={onOpenAdmin}
+            >
               <Settings2 size={16} />
               <span>Scorekeeper</span>
             </button>
@@ -1220,13 +1180,6 @@ export default function Dashboard({
               <span>Demo workspace</span> Sample data in this browser. Live
               league scores are unchanged.
             </div>
-          )}
-          {!loading && players.length > 0 && (
-            <LeaderSpotlight
-              players={players}
-              onPlayer={openPlayer}
-              onCertificate={openCertificate}
-            />
           )}
           {route.section === "verify" ? (
             <Verification
@@ -1272,132 +1225,213 @@ export default function Dashboard({
             />
           ) : (
             <>
-              <div className="dash-page-heading">
-                <div>
-                  <h1>
-                    {route.section === "overview"
-                      ? "League overview"
-                      : route.section === "players"
+              {route.section === "overview" ? (
+                <section className="league-hero">
+                  <div className="league-hero-copy">
+                    <p className="league-season">
+                      <span /> Évry · 2026 season
+                    </p>
+                    <h1>League overview</h1>
+                    <p>
+                      See who’s carrying the most penalty points and what
+                      changed at the table.
+                    </p>
+                    <div className="league-hero-actions">
+                      <button
+                        className="dash-button primary"
+                        onClick={() => navigate("players")}
+                      >
+                        View all players <ArrowUpRight size={16} />
+                      </button>
+                      <button
+                        className="dash-button"
+                        onClick={onRefresh}
+                        disabled={refreshing || !online}
+                      >
+                        <RefreshCw
+                          size={15}
+                          className={refreshing ? "dash-spinning" : ""}
+                        />
+                        {refreshing ? "Refreshing" : "Refresh"}
+                      </button>
+                    </div>
+                  </div>
+                  <img
+                    className="league-hero-dice"
+                    src={`${import.meta.env.BASE_URL}glass-dice.webp`}
+                    alt=""
+                    width="866"
+                    height="650"
+                    fetchPriority="high"
+                  />
+                </section>
+              ) : (
+                <div className="dash-page-heading">
+                  <div>
+                    <h1>
+                      {route.section === "players"
                         ? "The players"
                         : route.section === "activity"
                           ? "Score activity"
                           : route.section === "certificates"
                             ? "Player certificates"
                             : "House rules"}
-                  </h1>
-                  <p>
-                    {route.section === "overview"
-                      ? "The state of the table, without the table talk."
-                      : route.section === "players"
-                        ? "Every player, every point, a record to explore."
+                    </h1>
+                    <p>
+                      {route.section === "players"
+                        ? "Search the standings and open any player’s record."
                         : route.section === "activity"
                           ? "Follow the changes behind the current standings."
                           : route.section === "certificates"
-                            ? "Personal recognition for every place at the table."
+                            ? "Preview, download, or verify a player’s recognition."
                             : "How scores, rankings, and records work."}
-                  </p>
-                </div>
-                <div className="dash-page-actions">
-                  <button
-                    className="dash-button"
-                    onClick={onRefresh}
-                    disabled={refreshing || !online}
-                  >
-                    <RefreshCw
-                      size={15}
-                      className={refreshing ? "dash-spinning" : ""}
-                    />
-                    {refreshing ? "Refreshing" : "Refresh"}
-                  </button>
-                  {route.section !== "certificates" && (
-                    <button
-                      className="dash-button"
-                      disabled={!selectedEvents.length}
-                      onClick={() => exportHistory(selectedEvents, players)}
-                    >
-                      <Download size={15} />
-                      Export
-                    </button>
-                  )}
-                </div>
-              </div>
-              {(route.section === "overview" ||
-                route.section === "activity") && (
-                <>
-                  <div className="dash-metrics">
-                    <Metric
-                      label="League players"
-                      value={players.length}
-                      note="Active on the current table"
-                      icon={Users}
-                    />
-                    <Metric
-                      label="Total penalty points"
-                      value={total}
-                      note="Current all-time league total"
-                      icon={Layers}
-                      tone="accent"
-                    />
-                    <Metric
-                      label="Recorded awards"
-                      value={metric.awards}
-                      note={`${metric.positive} points in selected period`}
-                      icon={Activity}
-                    />
-                    <Metric
-                      label="Average penalty"
-                      value={metric.average.toFixed(1)}
-                      note={`${metric.corrections} corrections in selected period`}
-                      icon={TrendingUp}
-                    />
+                    </p>
                   </div>
-                  <div className="dash-section-toolbar">
-                    <div className="dash-analysis-label">
-                      <span className="dash-dot" />
-                      Available score history
-                      <small>
-                        {events.length
-                          ? `${shortDate(events[0].time)} – ${shortDate(events.at(-1).time)}`
-                          : "No recorded history"}
-                      </small>
-                    </div>
-                    <Period value={period} onChange={setPeriod} />
+                  <div className="dash-page-actions">
+                    {route.section === "certificates" && (
+                      <a href="#verify" className="dash-button">
+                        <ShieldCheck size={16} /> Verify a certificate
+                      </a>
+                    )}
+                    {route.section !== "rules" && (
+                      <button
+                        className="dash-button"
+                        onClick={onRefresh}
+                        disabled={refreshing || !online}
+                      >
+                        <RefreshCw
+                          size={15}
+                          className={refreshing ? "dash-spinning" : ""}
+                        />
+                        {refreshing ? "Refreshing" : "Refresh"}
+                      </button>
+                    )}
+                    {route.section === "activity" && (
+                      <button
+                        className="dash-button"
+                        disabled={!selectedEvents.length}
+                        onClick={() => exportHistory(selectedEvents, players)}
+                      >
+                        <Download size={15} /> Export
+                      </button>
+                    )}
                   </div>
-                </>
+                </div>
               )}
+              {route.section === "certificates" && players.length > 0 && (
+                <LeaderSpotlight
+                  players={players}
+                  onPlayer={openPlayer}
+                  onCertificate={openCertificate}
+                />
+              )}
+              <div
+                className={
+                  route.section === "overview" ? "overview-board" : undefined
+                }
+              >
+                {route.section === "overview" && (
+                  <Panel
+                    className="overview-standings"
+                    title="Current standings"
+                    description="All-time · highest penalty total first"
+                    action={
+                      <button
+                        className="dash-panel-link"
+                        onClick={() => navigate("players")}
+                      >
+                        View all
+                        <ArrowUpRight size={14} />
+                      </button>
+                    }
+                  >
+                    <Standings
+                      players={players}
+                      onPlayer={openPlayer}
+                      compact
+                    />
+                    <div className="dash-panel-note">
+                      Equal totals use the earlier player’s creation order.
+                    </div>
+                  </Panel>
+                )}
+                {(route.section === "overview" ||
+                  route.section === "activity") && (
+                  <>
+                    <div className="dash-metrics">
+                      <Metric
+                        label="League players"
+                        value={players.length}
+                        note="Active on the current table"
+                        icon={Users}
+                      />
+                      <Metric
+                        label="Total penalty points"
+                        value={total}
+                        note="Current all-time league total"
+                        icon={Layers}
+                        tone="accent"
+                      />
+                      <Metric
+                        label="Recorded awards"
+                        value={metric.awards}
+                        note={`${metric.positive} points in selected period`}
+                        icon={Activity}
+                      />
+                      <Metric
+                        label="Average penalty"
+                        value={metric.average.toFixed(1)}
+                        note={`${metric.corrections} corrections in selected period`}
+                        icon={TrendingUp}
+                      />
+                    </div>
+                    <div className="dash-section-toolbar">
+                      <div className="dash-analysis-label">
+                        <span className="dash-dot" />
+                        Available score history
+                        <small>
+                          {events.length
+                            ? `${shortDate(events[0].time)} – ${shortDate(events.at(-1).time)}`
+                            : "No recorded history"}
+                        </small>
+                      </div>
+                      <div className="history-actions">
+                        <Period value={period} onChange={setPeriod} />
+                        {route.section === "overview" && (
+                          <button
+                            className="dash-button"
+                            disabled={!selectedEvents.length}
+                            onClick={() =>
+                              exportHistory(selectedEvents, players)
+                            }
+                          >
+                            <Download size={15} /> Export
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+                {route.section === "overview" && (
+                  <TrendChart
+                    className="overview-trend"
+                    events={events}
+                    players={players.slice(0, 3)}
+                    period={period}
+                    title="Penalty race"
+                    description="Net recorded changes for the current top three"
+                  />
+                )}
+              </div>
               {route.section === "overview" && (
                 <>
-                  <div className="dash-overview-grid">
-                    <TrendChart
-                      events={events}
-                      players={players.slice(0, 3)}
-                      period={period}
-                      title="Penalty race"
-                      description="Net recorded changes for the current top three"
+                  {players.length > 0 && (
+                    <LeaderSpotlight
+                      players={players}
+                      onPlayer={openPlayer}
+                      onCertificate={openCertificate}
                     />
-                    <Panel
-                      title="Current standings"
-                      description="All-time · highest penalty total first"
-                      action={
-                        <button
-                          className="dash-panel-link"
-                          onClick={() => navigate("players")}
-                        >
-                          View all
-                          <ArrowUpRight size={14} />
-                        </button>
-                      }
-                    >
-                      <Standings
-                        players={players}
-                        onPlayer={openPlayer}
-                        compact
-                      />
-                      <div className="dash-panel-note">
-                        Equal totals use the earlier player’s creation order.
-                      </div>
-                    </Panel>
-                  </div>
+                  )}
                   <div className="dash-two-col">
                     <DailyChart events={selectedEvents} />
                     <Distribution events={selectedEvents} />

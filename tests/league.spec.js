@@ -174,8 +174,11 @@ test("phone and tablet layouts, large scores, long names, light theme and offlin
   );
   await page.setViewportSize({ width: 390, height: 844 });
   await open(page);
-  await page.getByRole("button", { name: "Open navigation" }).click();
-  await page.getByRole("link", { name: "Players", exact: false }).click();
+  const dock = page.getByRole("navigation", { name: "League navigation" });
+  const initialDock = await dock.boundingBox();
+  await page.evaluate(() => window.scrollTo({ top: 700, behavior: "instant" }));
+  expect((await dock.boundingBox()).y).toBe(initialDock.y);
+  await dock.getByRole("link", { name: "Players", exact: true }).click();
   await page.locator(".dash-player-row").first().click();
   await expect(
     page.getByRole("heading", { name: "A very long player name here" }),

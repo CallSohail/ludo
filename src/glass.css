@@ -1,0 +1,646 @@
+/* The dock and dialogs sit on a frosted layer. Score content uses denser glass. */
+:root {
+  --paper: #0b1715;
+  --paper-light: #172825;
+  --paper-deep: #203730;
+  --ink: #eff7f2;
+  --muted: #b3c6bd;
+  --green: #a9edbd;
+  --green-deep: #a9edbd;
+  --pink: #f1b8cb;
+  --line: #ffffff25;
+  --focus: #f1b8cb;
+  --chart-green: #9de8b2;
+  --chart-pink: #f0afc7;
+  --chart-blue: #93d4e0;
+  --chart-gold: #ebcb91;
+  --glass-content: #192b26e8;
+  --glass-floating: #1a2e28d9;
+  --glass-chrome: #162622ed;
+  --glass-edge: #ffffff38;
+  --glass-shine: #ffffff25;
+  --glass-shadow: 0 12px 38px #030f0d42;
+  --canvas-light: #1c453a;
+  --canvas-rose: #352935;
+  --hero-base: #142e27;
+  --hero-light: #346b4f;
+  --hero-rose: #4a3440;
+  --glass-active: #2c4d3d;
+  --action-top: #c5f5d2;
+  --action-bottom: #a4e8b8;
+  --action-ink: #14281a;
+  --glass-radius: 24px;
+}
+:root[data-theme="paper"] {
+  --paper: #eaf2ee;
+  --paper-light: #f8fcf9;
+  --paper-deep: #e3efe8;
+  --ink: #162a22;
+  --muted: #425b50;
+  --green: #195a38;
+  --green-deep: #195a38;
+  --pink: #8b3657;
+  --line: #304d441f;
+  --focus: #8b3657;
+  --chart-green: #247646;
+  --chart-pink: #a0416b;
+  --chart-blue: #27667c;
+  --chart-gold: #79571e;
+  --glass-content: #f8fcfae8;
+  --glass-floating: #f8fcf9d9;
+  --glass-chrome: #eef7f1e8;
+  --glass-edge: #ffffffed;
+  --glass-shine: #ffffffdf;
+  --glass-shadow: 0 12px 38px #294d3821;
+  --canvas-light: #c2ead5;
+  --canvas-rose: #f0dee7;
+  --hero-base: #e1f3e8;
+  --hero-light: #a9dbc2;
+  --hero-rose: #f4d8e3;
+  --glass-active: #d1ebdc;
+  --action-top: #286a47;
+  --action-bottom: #184a35;
+  --action-ink: #fff;
+}
+body {
+  background:
+    radial-gradient(ellipse at 12% 0, var(--canvas-light), transparent 57%),
+    radial-gradient(ellipse at 97% 28%, var(--canvas-rose), transparent 48%),
+    var(--paper);
+  background-repeat: no-repeat;
+  background-size: 100% 1050px;
+}
+.dash-main {
+  max-width: 1328px;
+  padding: 30px 32px 24px;
+}
+.dash-app h1 {
+  font-size: clamp(32px, 4vw, 50px);
+  line-height: 1.04;
+  font-weight: 600;
+  letter-spacing: -0.055em;
+}
+.dash-app h2 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+.dash-app h3 {
+  font-weight: 600;
+}
+.dash-topbar {
+  top: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  height: 76px;
+  padding-inline: max(28px, calc((100% - 1264px) / 2));
+  background: var(--glass-chrome);
+}
+.dash-brand {
+  width: max-content;
+  padding: 0;
+  gap: 10px;
+}
+.dash-brand > span {
+  width: 41px;
+  height: 41px;
+  color: var(--action-ink);
+  background: linear-gradient(150deg, var(--action-top), var(--action-bottom));
+  border: 1px solid var(--glass-edge);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 1px var(--glass-shine),
+    0 4px 10px #081a1522;
+}
+.dash-brand strong {
+  font-size: 22px;
+}
+.dash-brand small {
+  margin-top: 1px;
+  font-size: 10px;
+}
+.dash-top-actions {
+  justify-self: end;
+  gap: 8px;
+}
+.league-dock {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 999px;
+  background: var(--glass-floating);
+  box-shadow:
+    inset 0 1px var(--glass-shine),
+    0 6px 20px #06171116;
+}
+.league-dock a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--muted);
+}
+.league-dock a:hover {
+  color: var(--ink);
+  background: var(--paper-deep);
+}
+.league-dock a[aria-current="page"] {
+  color: var(--green);
+  font-weight: 600;
+  background: var(--glass-active);
+  border-color: var(--glass-edge);
+  box-shadow: inset 0 1px var(--glass-shine);
+}
+.dock-label-short {
+  display: none;
+}
+.dash-button,
+.dash-icon-button,
+.dash-period,
+.dash-period button {
+  border-radius: 999px;
+}
+.dash-button,
+.dash-icon-button {
+  background: var(--glass-floating);
+  border-color: var(--glass-edge);
+  box-shadow: inset 0 1px var(--glass-shine);
+}
+.dash-button.primary,
+.admin-modal .primary-button,
+.admin-modal .dark-button {
+  color: var(--action-ink);
+  background: linear-gradient(160deg, var(--action-top), var(--action-bottom));
+  border: 1px solid var(--glass-edge);
+  box-shadow:
+    inset 0 1px var(--glass-shine),
+    0 5px 12px #071c1426;
+}
+.dash-button.primary:hover,
+.admin-modal .primary-button:hover,
+.admin-modal .dark-button:hover {
+  background: var(--action-top);
+  color: var(--action-ink);
+}
+.dash-button:not(.primary):hover,
+.dash-icon-button:hover {
+  background: var(--paper-deep);
+}
+.dash-app .dash-button:disabled {
+  cursor: not-allowed;
+}
+.dash-panel,
+.dash-metrics,
+.dash-profile-header,
+.league-crown,
+.dash-page-heading,
+.dash-banner {
+  background: var(--glass-content);
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--glass-radius);
+  box-shadow:
+    inset 0 1px var(--glass-shine),
+    var(--glass-shadow);
+}
+.dash-panel-head {
+  padding: 22px 22px 0;
+}
+.dash-panel-head p {
+  font-size: 12px;
+}
+.dash-page-heading,
+.dash-profile-header {
+  padding: clamp(19px, 3vw, 34px);
+}
+.dash-page-heading,
+.dash-profile-header {
+  background:
+    linear-gradient(108deg, var(--glass-content), transparent 140%),
+    var(--hero-base);
+}
+.dash-page-heading p {
+  font-size: 14px;
+  margin-top: 10px;
+}
+.dash-banner {
+  padding: 13px 16px;
+}
+.dash-banner.error {
+  border-color: var(--pink);
+}
+.dash-demo-note {
+  margin: 0 0 16px;
+}
+.league-hero {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  min-height: 293px;
+  padding: 35px 42px;
+  border-radius: 32px;
+  border: 1px solid var(--glass-edge);
+  box-shadow:
+    inset 0 1px var(--glass-shine),
+    var(--glass-shadow);
+  overflow: hidden;
+  margin-bottom: 20px;
+  background:
+    radial-gradient(ellipse at 78% 15%, var(--hero-light), transparent 55%),
+    radial-gradient(ellipse at 90% 97%, var(--hero-rose), transparent 55%),
+    var(--hero-base);
+}
+.league-hero-copy {
+  width: 60%;
+  max-width: 560px;
+  z-index: 1;
+}
+.league-season {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.league-season span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.dash-app .league-hero h1 {
+  font-size: clamp(40px, 5.2vw, 72px);
+}
+.league-hero h1 + p {
+  font-size: 15px;
+  color: var(--muted);
+  max-width: 42ch;
+  margin: 14px 0 22px;
+}
+.league-hero-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.league-hero-actions .dash-button {
+  min-height: 43px;
+}
+.league-hero-dice {
+  position: absolute;
+  right: clamp(10px, 4vw, 80px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: min(47%, 524px);
+  height: 96%;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 15px 28px #10241748);
+}
+.overview-board {
+  display: grid;
+  grid-template-columns: minmax(330px, 1fr) minmax(0, 1.48fr);
+  grid-template-areas: "metrics metrics" "filters filters" "standings trend";
+  gap: 18px;
+  margin-bottom: 20px;
+}
+.overview-board .dash-metrics {
+  grid-area: metrics;
+  margin: 0;
+}
+.overview-board .dash-section-toolbar {
+  grid-area: filters;
+  margin: 0;
+}
+.overview-standings {
+  grid-area: standings;
+}
+.overview-trend {
+  grid-area: trend;
+}
+.overview-trend .dash-chart-tall {
+  height: 300px;
+}
+.dash-metric > strong {
+  font-size: clamp(29px, 3vw, 40px);
+  margin-block: 10px 5px;
+}
+.dash-metric > div > svg {
+  color: var(--green);
+}
+.dash-period {
+  background: var(--glass-floating);
+  border-color: var(--glass-edge);
+  box-shadow: inset 0 1px var(--glass-shine);
+}
+.dash-period button[aria-pressed="true"] {
+  color: var(--green);
+  font-weight: 600;
+  background: var(--glass-active);
+}
+.overview-standings .dash-standing:first-child {
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--chart-gold) 12%, transparent);
+}
+.dash-standing:focus-visible,
+.certificate-player:focus-visible {
+  outline-offset: -3px;
+}
+.dash-search,
+.dash-directory-tools select,
+.dash-compare-label select,
+.certificate-message-label textarea,
+.certificate-verification input,
+.admin-modal input:not([type="checkbox"]),
+.admin-modal select,
+.admin-modal textarea {
+  border-radius: 14px;
+}
+.dash-search {
+  background: var(--paper);
+}
+.dash-search input {
+  border-radius: inherit;
+}
+.dash-search:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+.dash-tooltip {
+  background: var(--paper-light);
+  border-radius: 12px;
+}
+.dash-back {
+  border-radius: 999px;
+}
+.dash-profile-name p > span {
+  color: var(--green);
+}
+.dash-profile-name h1 {
+  overflow-wrap: anywhere;
+}
+.history-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dash-avatar.large {
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-shadow);
+}
+.dash-record-details {
+  border-radius: var(--glass-radius);
+  background: var(--glass-content);
+}
+.league-crown {
+  border-color: color-mix(in srgb, var(--chart-gold) 40%, transparent);
+}
+.league-crown-seal {
+  border-color: var(--glass-edge);
+  color: var(--chart-gold);
+}
+.certificate-player[aria-pressed="true"] {
+  background: var(--glass-active);
+}
+.certificate-paper-wrap {
+  border-radius: 12px;
+}
+.certificate-full-preview {
+  border-radius: var(--glass-radius);
+}
+.certificate-verification input {
+  background: var(--paper);
+}
+.certificate-verify-result > svg {
+  color: var(--green);
+}
+.certificate-verify-result h2 {
+  font-size: 24px;
+  margin-top: 10px;
+}
+.modal-backdrop {
+  background: #09171091;
+}
+.admin-modal,
+.access-card {
+  background: var(--glass-chrome);
+  border-color: var(--glass-edge);
+  border-radius: 28px;
+  box-shadow:
+    inset 0 1px var(--glass-shine),
+    0 28px 95px #05181269;
+}
+.admin-card,
+.ledger-card {
+  background: var(--glass-content);
+  border-radius: 20px;
+  border-color: var(--glass-edge);
+}
+.admin-tabs button {
+  border-radius: 16px;
+}
+.admin-tabs button.active {
+  background: var(--glass-active);
+}
+.admin-modal .close-button {
+  border-radius: 50%;
+}
+.admin-modal .arrow-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.admin-modal .login-screen {
+  padding-top: 55px;
+}
+.admin-modal .primary-button,
+.admin-modal .dark-button {
+  border-radius: 999px;
+}
+
+@supports (
+  (backdrop-filter: blur(18px)) or (-webkit-backdrop-filter: blur(18px))
+) {
+  .dash-topbar,
+  .league-dock,
+  .modal-backdrop {
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    backdrop-filter: blur(18px) saturate(140%);
+  }
+}
+@media (max-width: 1120px) {
+  .dash-topbar {
+    padding-inline: 22px;
+  }
+  .dash-top-actions > .dash-status {
+    display: none;
+  }
+  .league-dock a {
+    padding-inline: 10px;
+  }
+}
+@media (max-width: 900px) {
+  html {
+    scroll-padding-bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+  }
+  .dash-topbar {
+    display: flex;
+    height: 64px;
+  }
+  .dash-main {
+    padding: 23px 19px calc(94px + env(safe-area-inset-bottom, 0px));
+  }
+  .league-dock {
+    position: fixed;
+    z-index: 55;
+    inset: auto 0 max(12px, env(safe-area-inset-bottom, 0px)) 0;
+    width: min(440px, calc(100% - 24px));
+    margin-inline: auto;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    padding: 5px;
+    border-radius: 24px;
+    box-shadow:
+      inset 0 1px var(--glass-shine),
+      0 12px 35px #071c144d;
+  }
+  .league-dock a {
+    flex-direction: column;
+    gap: 3px;
+    padding: 5px 2px;
+    min-height: 49px;
+    border-radius: 18px;
+    font-size: 10px;
+  }
+  .dock-label {
+    display: none;
+  }
+  .dock-label-short {
+    display: block;
+  }
+  .dash-topbar {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .league-hero {
+    min-height: 258px;
+    padding: 26px 28px;
+  }
+  .overview-board {
+    grid-template-columns: minmax(265px, 1fr) minmax(0, 1.22fr);
+  }
+}
+@media (max-width: 760px) {
+  .dash-main {
+    padding-inline: 14px;
+  }
+  .dash-topbar {
+    padding-inline: 14px;
+  }
+  .dash-top-actions > .dash-button,
+  .dash-icon-button {
+    min-height: 42px;
+  }
+  .dash-icon-button {
+    width: 42px;
+  }
+  .dash-page-heading,
+  .dash-profile-header {
+    padding: 20px;
+  }
+  .dash-panel-head {
+    padding-inline: 16px;
+  }
+  .overview-board {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "standings" "metrics" "filters" "trend";
+    gap: 14px;
+  }
+  .overview-trend .dash-chart-tall {
+    height: 250px;
+  }
+  .league-hero {
+    min-height: 242px;
+    padding: 22px;
+    border-radius: 26px;
+    margin-bottom: 14px;
+  }
+  .league-hero-copy {
+    width: 70%;
+  }
+  .dash-app .league-hero h1 {
+    font-size: clamp(34px, 8vw, 55px);
+  }
+  .league-hero h1 + p {
+    font-size: 12px;
+    max-width: 32ch;
+    margin-block: 10px 14px;
+  }
+  .league-hero-dice {
+    width: 42%;
+    height: 70%;
+    right: -1%;
+    top: 39%;
+  }
+  .league-hero-actions {
+    margin-right: -45px;
+  }
+  .league-hero-actions .dash-button {
+    min-height: 40px;
+    padding-inline: 11px;
+  }
+  .certificate-player-list {
+    max-height: 152px;
+  }
+  .dash-footer {
+    padding-bottom: 12px;
+  }
+}
+@media (max-width: 380px) {
+  .dash-top-actions .dash-button {
+    width: 42px;
+  }
+  .league-hero {
+    padding-inline: 16px;
+  }
+  .league-hero-copy {
+    width: 72%;
+  }
+  .dash-app .league-hero h1 {
+    font-size: 33px;
+  }
+  .league-hero-dice {
+    width: 39%;
+    right: -2%;
+  }
+  .league-hero-actions {
+    gap: 6px;
+  }
+}
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  :root,
+  :root[data-theme="paper"] {
+    --glass-content: var(--paper-light);
+    --glass-floating: var(--paper-light);
+    --glass-chrome: var(--paper);
+  }
+  .dash-topbar,
+  .league-dock,
+  .modal-backdrop {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .league-hero {
+    background: var(--paper-light);
+  }
+}
