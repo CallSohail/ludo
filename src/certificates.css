@@ -170,7 +170,7 @@
 .certificate-paper-wrap {
   position: relative;
   margin: 20px;
-  background: #f7f3e9;
+  background: #0b1628;
   aspect-ratio: 1400/990;
   border-radius: 2px;
   overflow: hidden;
@@ -196,7 +196,7 @@
   gap: 12px;
   padding: 24px;
   text-align: center;
-  color: #e2f0e6;
+  color: #fbf0db;
   font-size: 13px;
 }
 .certificate-render-error p {
@@ -610,9 +610,6 @@
 }
 .certificate-verification .certificates-workspace {
   display: block;
-}
-.certificate-paper-wrap {
-  background: #101512;
 }
 .certificate-verification .certificate-facts {
   grid-template-columns: repeat(2, minmax(0, 1fr));

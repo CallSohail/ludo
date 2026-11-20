@@ -17,6 +17,7 @@ import {
   normalizeMessage,
   safeCertificateFilename,
   MAX_CERTIFICATE_MESSAGE,
+  TOP_CERTIFICATE_TITLE,
 } from "./certificateModel";
 import {
   renderCertificate,
@@ -90,7 +91,7 @@ export function LeaderSpotlight({ players, onPlayer, onCertificate }) {
           onClick={() => onCertificate(leader.id)}
         >
           <Award size={15} />
-          Crown certificate
+          {TOP_CERTIFICATE_TITLE}
         </button>
       </div>
     </section>
@@ -177,6 +178,7 @@ export default function Certificates({
     setComments([]);
     setCommentError("");
     setConsent(false);
+    setAnnouncement("");
     setPageIndex(0);
     requestId.current = crypto.randomUUID();
   }, [selectedId]);
@@ -391,10 +393,7 @@ export default function Certificates({
                   key={p.id}
                   className={`certificate-player ${rank === 1 ? "crown-player" : ""}`}
                   aria-pressed={player?.id === p.id}
-                  onClick={() => {
-                    onSelect(p.id);
-                    setAnnouncement("");
-                  }}
+                  onClick={() => onSelect(p.id)}
                 >
                   <span>
                     {rank === 1 ? (
@@ -408,7 +407,7 @@ export default function Certificates({
                     <strong>{p.name}</strong>
                     <small>
                       {rank === 1
-                        ? "The crown edition"
+                        ? TOP_CERTIFICATE_TITLE
                         : rank <= 3
                           ? "Podium recognition"
                           : "League recognition"}
@@ -449,9 +448,10 @@ export default function Certificates({
                 size="certificate-preview-avatar"
               />
               <div>
-                <h2>{model.leader ? "The crown edition" : model.title}</h2>
+                <h2>{model.awardName}</h2>
                 <p>
                   {model.name} · position {model.rank} of {model.total}
+                  {model.issued ? " at issuance" : ""}
                 </p>
               </div>
             </div>
@@ -468,7 +468,7 @@ export default function Certificates({
               ref={canvas}
               className={`certificate-paper ${readyForModel ? "is-ready" : ""}`}
               role="img"
-              aria-label={`Certificate for ${model.name}, ${model.title}, position ${model.rank}, ${model.points} penalty points. Full certificate content is listed below.`}
+              aria-label={`${model.awardName} for ${model.name}, position ${model.rank}, ${model.points} penalty points. Full certificate content is listed below.`}
             />
             {!readyForModel && !previewError && (
               <div className="certificate-loading" role="status">
@@ -611,7 +611,9 @@ export default function Certificates({
             <div>
               <h2>Included on this certificate</h2>
               <p>
-                Personalised from the current profile and all available history.
+                {model.issued
+                  ? "Standings and history saved at issuance."
+                  : "Based on the current profile and available history."}
               </p>
             </div>
             <MessageSquare size={17} />
@@ -627,7 +629,9 @@ export default function Certificates({
             </ul>
             <dl className="certificate-facts">
               <div>
-                <dt>Current position</dt>
+                <dt>
+                  {model.issued ? "Position at issuance" : "Current position"}
+                </dt>
                 <dd>
                   {model.rank} of {model.total}
                 </dd>
@@ -645,7 +649,7 @@ export default function Certificates({
                 </dd>
               </div>
               <div>
-                <dt>Standings loaded</dt>
+                <dt>{model.issued ? "Issued" : "Standings loaded"}</dt>
                 <dd>{model.dateLabel} · Paris</dd>
               </div>
             </dl>

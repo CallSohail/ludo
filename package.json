@@ -11,6 +11,8 @@
     "build:production": "node scripts/check-production-env.mjs && vite build"
   },
   "dependencies": {
+    "@fontsource/baskervville": "5.3.0",
+    "@fontsource/cinzel": "5.3.0",
     "@fontsource/dm-sans": "5.3.0",
     "@supabase/supabase-js": "2.57.4",
     "fflate": "0.8.3",

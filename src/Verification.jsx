@@ -184,7 +184,7 @@ export default function Verification({
                 <dd>{record.id}</dd>
               </div>
             </dl>
-            <h3>Recognition</h3>
+            <h3>{model.awardName}</h3>
             <ul>
               {model.commendations.map((t) => (
                 <li key={t}>{t}</li>

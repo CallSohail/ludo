@@ -1,5 +1,6 @@
 import { numeric, stats, fullDate } from "./analytics.js";
 export const MAX_CERTIFICATE_MESSAGE = 600;
+export const TOP_CERTIFICATE_TITLE = "BETORA OF THE YEAR";
 export function certificateModel(player, players, events, asOf = new Date()) {
   const index = players.findIndex((p) => p.id === player.id);
   if (index < 0)
@@ -64,6 +65,7 @@ function modelFromFacts(player, rank, total, metric, ties, asOf) {
     points,
     total: total,
     leader: rank === 1,
+    awardName: rank === 1 ? TOP_CERTIFICATE_TITLE : "Certificate of Recognition",
     title,
     commendations,
     metric,

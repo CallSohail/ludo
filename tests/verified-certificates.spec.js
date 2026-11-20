@@ -86,9 +86,17 @@ test("approved comments survive issuance, reload, multipage exports and revocati
     const players = JSON.parse(
       localStorage.getItem("ludo-super-league:players"),
     );
-    players[0].points_total += 100;
+    players.find((player) => player.id === "demo-mubeen").points_total = 200;
     localStorage.setItem("ludo-super-league:players", JSON.stringify(players));
   });
+  await page.goto("/#certificates=demo-mubeen");
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "BETORA OF THE YEAR" }),
+  ).toBeVisible();
+  await expect(page.locator(".certificate-preview-identity")).toContainText(
+    "Mubeen",
+  );
   await page.goto(href);
   await expect(
     page.getByRole("heading", { name: "Demo certificate · this browser only" }),
@@ -96,6 +104,10 @@ test("approved comments survive issuance, reload, multipage exports and revocati
   await expect(
     page.locator(".certificate-verify-result blockquote"),
   ).toHaveCount(9);
+  await expect(page.locator(".certificate-verify-result")).toContainText("Saboor");
+  await expect(
+    page.getByRole("heading", { name: "BETORA OF THE YEAR" }),
+  ).toBeVisible();
   await page.reload();
   await expect(page.locator(".certificate-verify-result")).toContainText(
     "For every memorable roll.",

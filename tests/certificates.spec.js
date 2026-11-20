@@ -15,6 +15,9 @@ test("each active player has a personalised certificate and separate local messa
 }) => {
   await open(page);
   await expect(page.locator(".certificate-player")).toHaveCount(11);
+  await expect(
+    page.getByRole("heading", { name: "BETORA OF THE YEAR" }),
+  ).toBeVisible();
   await expect(page.locator(".certificate-content")).toContainText("Saboor");
   await page
     .getByRole("textbox", { name: "Personal certificate message" })
@@ -32,6 +35,12 @@ test("each active player has a personalised certificate and separate local messa
   await expect(page.locator(".certificate-content")).toContainText(
     "Distinguished contender",
   );
+  await expect(
+    page.getByRole("heading", { name: "Certificate of Recognition" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "BETORA OF THE YEAR" }),
+  ).toHaveCount(0);
   await page
     .locator(".certificate-player")
     .filter({ hasText: "Saboor" })
@@ -55,6 +64,7 @@ test("PDF and PNG downloads have the correct page and image dimensions", async (
   const pdfPath = info.outputPath("certificate.pdf");
   await pdf.saveAs(pdfPath);
   const doc = await PDFDocument.load(await readFile(pdfPath));
+  expect(doc.getTitle()).toBe("BETORA OF THE YEAR · Saboor");
   expect(doc.getPageCount()).toBe(1);
   expect(doc.getPage(0).getWidth()).toBeCloseTo(841.89, 1);
   expect(doc.getPage(0).getHeight()).toBeCloseTo(595.276, 1);
@@ -67,6 +77,10 @@ test("PDF and PNG downloads have the correct page and image dimensions", async (
   expect(bytes.subarray(1, 4).toString()).toBe("PNG");
   expect(bytes.readUInt32BE(16)).toBe(3500);
   expect(bytes.readUInt32BE(20)).toBe(2475);
+  const downloaded = page.getByText("PNG certificate downloaded for Saboor.");
+  await expect(downloaded).toBeVisible();
+  await page.goto("/#certificates=demo-mubeen");
+  await expect(downloaded).toHaveCount(0);
 });
 test("long names, maximum messages, mobile layout and reduced motion", async ({
   page,
@@ -201,16 +215,17 @@ test("certificate renders the portrait for a renamed player ID and uses a monogr
       const image = document.querySelector(".certificate-preview-avatar img");
       await image.decode();
       const reference = document.createElement("canvas");
-      reference.width = reference.height = 660;
+      reference.width = reference.height = 280;
       const expected = reference.getContext("2d");
-      expected.drawImage(image, 0, 0, 660, 660);
+      expected.imageSmoothingQuality = "high";
+      expected.drawImage(image, 0, 0, 280, 280);
       const actual = canvas.getContext("2d");
       return [
-        [200, 210],
-        [300, 330],
-        [430, 470],
+        [110, 90],
+        [140, 140],
+        [175, 197],
       ].every(([x, y]) => {
-        const a = actual.getImageData(310 + x, 628 + y, 1, 1).data;
+        const a = actual.getImageData(220 + x, 1020 + y, 1, 1).data;
         const b = expected.getImageData(x, y, 1, 1).data;
         return a.every((value, channel) => Math.abs(value - b[channel]) < 12);
       });
@@ -226,11 +241,13 @@ test("certificate renders the portrait for a renamed player ID and uses a monogr
   await expect(page.locator(".certificate-preview-avatar")).toHaveText("M");
 });
 
-test("missing portrait and glass artwork fall back to a downloadable certificate", async ({
+test("missing portrait and Ludo artwork fall back to a downloadable certificate", async ({
   page,
 }) => {
   await page.route("**/saboor-avatar.webp", (route) => route.abort());
-  await page.route("**/certificate-glass-panel.webp", (route) => route.abort());
+  await page.route("**/certificate-midnight-trophy.webp", (route) =>
+    route.abort(),
+  );
   await open(page);
   await expect(page.locator(".certificate-preview-avatar")).toHaveText("S");
   const [download] = await Promise.all([
