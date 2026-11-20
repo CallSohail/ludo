@@ -77,6 +77,10 @@ test("PDF and PNG downloads have the correct page and image dimensions", async (
   expect(bytes.subarray(1, 4).toString()).toBe("PNG");
   expect(bytes.readUInt32BE(16)).toBe(3500);
   expect(bytes.readUInt32BE(20)).toBe(2475);
+  const downloaded = page.getByText("PNG certificate downloaded for Saboor.");
+  await expect(downloaded).toBeVisible();
+  await page.goto("/#certificates=demo-mubeen");
+  await expect(downloaded).toHaveCount(0);
 });
 test("long names, maximum messages, mobile layout and reduced motion", async ({
   page,

@@ -178,6 +178,7 @@ export default function Certificates({
     setComments([]);
     setCommentError("");
     setConsent(false);
+    setAnnouncement("");
     setPageIndex(0);
     requestId.current = crypto.randomUUID();
   }, [selectedId]);
@@ -392,10 +393,7 @@ export default function Certificates({
                   key={p.id}
                   className={`certificate-player ${rank === 1 ? "crown-player" : ""}`}
                   aria-pressed={player?.id === p.id}
-                  onClick={() => {
-                    onSelect(p.id);
-                    setAnnouncement("");
-                  }}
+                  onClick={() => onSelect(p.id)}
                 >
                   <span>
                     {rank === 1 ? (
@@ -631,7 +629,9 @@ export default function Certificates({
             </ul>
             <dl className="certificate-facts">
               <div>
-                <dt>{model.issued ? "Position at issuance" : "Current position"}</dt>
+                <dt>
+                  {model.issued ? "Position at issuance" : "Current position"}
+                </dt>
                 <dd>
                   {model.rank} of {model.total}
                 </dd>
