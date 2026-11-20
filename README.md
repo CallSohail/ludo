@@ -66,7 +66,7 @@ Apply the additive migration under `supabase/migrations/` after the base league 
 
 Open **Players → Certificates**, or **View player certificate** on a profile. Every active player has an individual certificate based on current all-time position and available history. The current #1 has a gold crown edition; other positions have matching podium or league editions. The #1 spotlight follows the current table and respects reduced-motion preferences.
 
-Certificates use centered DM Sans typography on charcoal, with lime green, a small pink accent and a gold crown emblem for position #1. The same renderer drives the preview and exports. Use **Open full-size preview** to inspect small text on a phone.
+Certificates pair a forest-glass dice panel with a league portrait or typographic monogram. Portraits are matched by player ID, including when opening older issued records. Centered DM Sans and a gold crown edition carry the recognition. The same renderer drives the preview and exports. Use **Open full-size preview** to inspect small text on a phone.
 
 Add a personal message and download an explicitly marked **unissued preview**, or sign in as scorekeeper to issue a permanent record. Scorekeepers can select up to 100 table comments from the latest 1,000 entries for that player. Comments are never included automatically: publication requires explicit approval. Issuance freezes the server-side recipient, rank, points, complete-history metrics, message and selected original comments. The server rejects stale rank/points, invalid comment ownership, unauthorised users and mismatched duplicate requests.
 
