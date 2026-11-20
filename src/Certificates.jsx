@@ -458,9 +458,6 @@ export default function Certificates({
             >
               Open full-size preview
             </button>
-            <a className="dash-button" href="#verify">
-              Verify a certificate
-            </a>
           </div>
           <dialog
             ref={fullPreview}

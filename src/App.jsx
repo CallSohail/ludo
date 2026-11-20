@@ -83,10 +83,9 @@ function LoginPanel({ onLogin, busy, error }) {
   };
   return (
     <div className="login-screen">
-      <p className="eyebrow">Restricted to people who know the scores</p>
       <h2>Scorekeeper sign in</h2>
       <p className="login-copy">
-        The players can watch. Only the scorekeeper can make the numbers move.
+        Sign in to manage players, record scores, and issue certificates.
       </p>
       <form onSubmit={submit} className="login-form">
         <label>
@@ -134,14 +133,12 @@ function LoginPanel({ onLogin, busy, error }) {
           disabled={busy}
           type="submit"
         >
-          {busy ? "Checking the ledger..." : "Sign in"} <Arrow />
+          {busy ? "Signing in…" : "Sign in"} <Arrow />
         </button>
       </form>
-      <p className="demo-hint">
-        {isSupabaseConfigured
-          ? "Production mode, protected by Supabase Auth."
-          : `Preview mode, try ${config.demoUsername} / ${config.demoPassword}.`}
-      </p>
+      {!isSupabaseConfigured && (
+        <p className="demo-hint">{`Preview mode, try ${config.demoUsername} / ${config.demoPassword}.`}</p>
+      )}
     </div>
   );
 }
@@ -447,7 +444,6 @@ function AdminPanel({
       >
         <div className="admin-topbar">
           <div>
-            <p className="eyebrow">Scorekeeper deck</p>
             <h2 id="admin-title">Manage the league</h2>
           </div>
           <div className="admin-top-actions">
@@ -1089,6 +1085,9 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? "stadium" : "paper";
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute("content", darkMode ? "#0b1715" : "#eaf2ee");
     try {
       localStorage.setItem("ludo-theme", darkMode ? "stadium" : "paper");
     } catch {
