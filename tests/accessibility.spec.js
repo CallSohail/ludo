@@ -1,11 +1,13 @@
+import { openScorekeeperLogin } from "./scorekeeper-helpers";
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 test("dashboard and player workspace meet automated WCAG AA checks in both themes", async ({
   page,
 }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
   await page.goto("/");
   await page
-    .getByRole("heading", { name: "League overview", exact: true })
+    .getByRole("heading", { name: "League standings", exact: true })
     .waitFor();
   for (const theme of ["dark", "light"]) {
     if (theme === "light")
@@ -20,10 +22,8 @@ test("dashboard and player workspace meet automated WCAG AA checks in both theme
     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
     .analyze();
   expect(profile.violations).toEqual([]);
-  await page
-    .locator(".dash-top-actions")
-    .getByRole("button", { name: "Scorekeeper" })
-    .click();
+  await page.keyboard.press("Escape");
+  await openScorekeeperLogin(page);
   const login = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
     .analyze();
@@ -32,6 +32,7 @@ test("dashboard and player workspace meet automated WCAG AA checks in both theme
 test("certificate selection, editable message and canvas preview have accessible alternatives", async ({
   page,
 }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
   await page.goto("/#certificates");
   await page
     .getByRole("button", { name: "Download PDF", exact: true })
@@ -53,6 +54,7 @@ test("certificate selection, editable message and canvas preview have accessible
 test("certificate verification has accessible empty and missing states in both themes", async ({
   page,
 }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
   await page.goto("/#verify");
   for (const theme of ["dark", "light"]) {
     if (theme === "light")

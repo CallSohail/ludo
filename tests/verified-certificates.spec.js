@@ -1,17 +1,15 @@
+import { loginScorekeeper } from "./scorekeeper-helpers";
 import { test, expect } from "@playwright/test";
 import { PDFDocument, PDFName, PDFArray, PDFDict, PDFString } from "pdf-lib";
 import { unzipSync } from "fflate";
 import { readFile } from "node:fs/promises";
 async function login(page) {
-  await page
-    .locator(".dash-top-actions")
-    .getByRole("button", { name: "Scorekeeper", exact: true })
-    .click();
-  await page.getByLabel("Username or email").fill("admin");
-  await page.getByLabel("Password", { exact: true }).fill("ludo2026");
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page.getByRole("dialog")).toContainText("Manage the league");
+  const hash = new URL(page.url()).hash;
+  await loginScorekeeper(page);
   await page.getByRole("button", { name: "Close admin panel" }).click();
+  await page.evaluate((value) => {
+    location.hash = value;
+  }, hash);
 }
 test("approved comments survive issuance, reload, multipage exports and revocation", async ({
   page,

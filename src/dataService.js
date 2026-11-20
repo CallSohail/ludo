@@ -1,3 +1,4 @@
+import { cleanReason, parsePoints, REASON_LIMIT, UNDO_MS } from "./scoring";
 import { isSupabaseConfigured } from "./config";
 import { supabase } from "./supabase";
 
@@ -202,61 +203,55 @@ async function sha256(value) {
     .toString(16);
 }
 
-export async function fetchPlayers() {
-  if (!isSupabaseConfigured)
-    return getDemoPlayers().filter(
-      (player) =>
-        player && player.active !== false && typeof player.name === "string",
+export async function fetchScorebook() {
+  if (!isSupabaseConfigured) {
+    const all = getDemoPlayers().filter(
+      (player) => player && typeof player.name === "string",
     );
-  const { data, error } = await supabase
-    .from("players")
-    .select("id,name,accent,emoji,points_total,active,created_at")
-    .eq("active", true)
-    .order("points_total", { ascending: false })
-    .order("created_at", { ascending: true })
-    .order("id", { ascending: true });
-  if (error) throw error;
-  const players = data || [];
-  const cache = readPublicCache();
-  writePublicCache(players, cache?.history || []);
-  return players;
-}
-
-export async function fetchScoreHistory() {
-  if (!isSupabaseConfigured)
-    return getDemoEvents().map(
-      ({ player_id, points, created_at, event_number }) => ({
-        player_id,
-        points,
-        created_at,
-        event_number,
-      }),
-    );
-  const { data, error } = await supabase.rpc("get_public_score_history");
-  if (error) {
-    throw error;
+    const names = new Map(all.map((player) => [player.id, player.name]));
+    return {
+      players: all.filter((player) => player.active !== false),
+      history: getDemoEvents().map((event) => ({
+        event_number: event.event_number,
+        player_id: event.player_id,
+        player_name: names.get(event.player_id),
+        points: event.points,
+        created_at: event.created_at,
+        event_type: event.event_type,
+        reason: event.published_reason ? event.reason : null,
+        starting_balance: Boolean(event.starting_balance),
+      })),
+    };
   }
-  const history = data || [];
-  const cache = readPublicCache();
-  writePublicCache(cache?.players || [], history);
-  return history;
+  const { data, error } = await supabase
+    .rpc("get_scorebook_snapshot")
+    .abortSignal(AbortSignal.timeout(12000));
+  if (error) throw error;
+  writePublicCache(data.players, data.history);
+  return data;
 }
 
 export async function fetchEvents() {
-  if (!isSupabaseConfigured) return getDemoEvents();
+  if (!isSupabaseConfigured)
+    return getDemoEvents().sort(
+      (a, b) => Number(b.event_number) - Number(a.event_number),
+    );
   const { data: sessionData } = await supabase.auth.getSession();
-  // The public page does not need the private ledger. Avoid a noisy RLS error
-  // before an admin signs in, then load it as soon as the admin panel opens.
   if (!sessionData.session) return [];
-  const { data, error } = await supabase
-    .from("point_events")
-    .select(
-      "id,event_number,player_id,points,reason,previous_hash,event_hash,created_by,created_at",
-    )
-    .order("event_number", { ascending: false })
-    .limit(30);
-  if (error) throw error;
-  return data || [];
+  const rows = [];
+  for (let start = 0; ; start += 500) {
+    const { data, error } = await supabase
+      .from("point_events")
+      .select(
+        "id,event_number,player_id,points,reason,previous_hash,event_hash,created_by,created_at,event_type,request_id,reverses_event_id,published_reason",
+      )
+      .order("event_number", { ascending: false })
+      .range(start, start + 499)
+      .abortSignal(AbortSignal.timeout(12000));
+    if (error) throw error;
+    rows.push(...data);
+    if (data.length < 500) return rows;
+  }
 }
 
 export async function createPlayer({ name, accent, emoji }) {
@@ -289,6 +284,8 @@ export async function createPlayer({ name, accent, emoji }) {
     p_accent: accent,
     p_emoji: emoji,
   });
+  if (error?.code === "23505")
+    throw new Error("That player name is already in use.");
   if (error) throw error;
   return Array.isArray(data) ? data[0] : data;
 }
@@ -318,6 +315,8 @@ export async function updatePlayer({ id, name, accent, emoji }) {
     p_accent: accent,
     p_emoji: emoji,
   });
+  if (error?.code === "23505")
+    throw new Error("That player name is already in use.");
   if (error) throw error;
   return Array.isArray(data) ? data[0] : data;
 }
@@ -328,6 +327,8 @@ export async function archivePlayer(id) {
     const players = getDemoPlayers();
     const player = players.find((item) => item.id === id);
     if (!player) throw new Error("Player not found.");
+    if (players.filter((item) => item.active !== false).length <= 1)
+      throw new Error("Keep at least one active player.");
     player.active = false;
     saveDemo(players, getDemoEvents());
     return player;
@@ -339,108 +340,225 @@ export async function archivePlayer(id) {
   return Array.isArray(data) ? data[0] : data;
 }
 
-export async function addPoints({ playerId, points, reason, consent }) {
-  const numericPoints = Number(points);
-  const cleanReason = reason.trim();
-  if (!playerId)
-    throw new Error("Choose a player before publishing the point.");
-  if (
-    !Number.isInteger(numericPoints) ||
-    numericPoints < 1 ||
-    numericPoints > 999
-  )
-    throw new Error("Points must be a whole number from 1 to 999.");
-  if (cleanReason.length < 3 || cleanReason.length > 180)
-    throw new Error("The reason must contain 3 to 180 characters.");
-  if (consent !== true)
-    throw new Error("Confirm the signed receipt before publishing.");
-  if (!isSupabaseConfigured) {
-    const players = getDemoPlayers();
-    const events = getDemoEvents();
-    const player = players.find(
-      (item) => item.id === playerId && item.active !== false,
-    );
-    if (!player) throw new Error("Player not found. Refresh and try again.");
-    const previousHash = events[0]?.event_hash || "GENESIS-LUDO-2026";
-    const createdAt = new Date().toISOString();
-    const eventNumber = events.length + 1;
-    const eventHash = await sha256(
-      `${previousHash}|${eventNumber}|${playerId}|${numericPoints}|${cleanReason}|${createdAt}`,
-    );
-    const event = {
-      id: `demo-event-${Date.now()}`,
-      event_number: eventNumber,
-      player_id: playerId,
-      points: numericPoints,
-      reason: cleanReason,
-      previous_hash: previousHash,
-      event_hash: eventHash,
-      created_by: "demo-admin",
-      created_at: createdAt,
-    };
-    player.points_total = Number(player.points_total || 0) + numericPoints;
-    saveDemo(players, [event, ...events]);
-    return event;
-  }
-  const { data, error } = await supabase.rpc("add_point_event", {
-    p_player_id: playerId,
-    p_points: numericPoints,
-    p_reason: cleanReason,
-    p_consent: consent,
-  });
-  if (error) throw error;
-  return Array.isArray(data) ? data[0] : data;
+let demoWrite = Promise.resolve();
+
+function demoRecordHash(event) {
+  return sha256(
+    JSON.stringify([
+      event.previous_hash,
+      event.event_number,
+      event.player_id,
+      event.points,
+      event.reason,
+      event.created_at,
+      event.request_id,
+      event.reverses_event_id,
+      event.published_reason,
+      event.event_type,
+    ]),
+  );
 }
 
-export async function adjustScore({
+async function writeDemoEntry({
   playerId,
-  points,
+  delta,
   reason,
-  consent = false,
+  requestId,
+  publicReason,
+  kind,
+  original,
 }) {
-  const delta = Number(points);
-  if (consent !== true)
-    throw new Error("Confirm the score correction before publishing.");
-  const cleanReason = reason.trim();
-  if (
-    !playerId ||
-    !Number.isInteger(delta) ||
-    delta === 0 ||
-    Math.abs(delta) > 999
-  )
-    throw new Error(
-      "Correction must be a whole number from -999 to 999, excluding zero.",
+  const players = getDemoPlayers();
+  const events = getDemoEvents().sort(
+    (a, b) => Number(b.event_number) - Number(a.event_number),
+  );
+  const source =
+    original &&
+    events.find(
+      (event) => event.id === original && event.event_type !== "adjustment",
     );
-  if (cleanReason.length < 3 || cleanReason.length > 180)
-    throw new Error("Explain the correction in 3 to 180 characters.");
-  if (!isSupabaseConfigured) {
-    const players = getDemoPlayers();
-    const events = getDemoEvents();
-    const player = players.find((item) => item.id === playerId && item.active);
-    if (!player || Number(player.points_total) + delta < 0)
-      throw new Error("This correction would make the total negative.");
-    player.points_total = Number(player.points_total) + delta;
-    const event = {
-      id: `demo-adjust-${Date.now()}`,
-      event_number: events.length + 1,
-      player_id: playerId,
-      points: delta,
-      reason: cleanReason,
-      event_type: "adjustment",
-      event_hash: `demo-${Date.now()}`,
-      created_at: new Date().toISOString(),
-    };
-    saveDemo(players, [event, ...events]);
-    return event;
+  if (original && !source)
+    throw new Error("The original penalty could not be found.");
+  if (source) {
+    playerId = source.player_id;
+    delta = -source.points;
+    reason = `Undo of entry #${source.event_number}`;
   }
-  const { data, error } = await supabase.rpc("admin_adjust_score", {
-    p_player_id: playerId,
-    p_delta: delta,
-    p_reason: cleanReason,
-    p_consent: consent,
+  const existing = events.find((event) => event.request_id === requestId);
+  if (existing) {
+    if (
+      existing.player_id !== playerId ||
+      existing.points !== delta ||
+      existing.reason !== reason ||
+      existing.reverses_event_id !== original ||
+      existing.published_reason !== publicReason ||
+      existing.event_type !== kind
+    )
+      throw new Error("This request ID belongs to a different score.");
+    return existing;
+  }
+  if (source && Date.now() - Date.parse(source.created_at) > UNDO_MS)
+    throw new Error("The undo window has ended. Use Correct a score.");
+  if (source && events.some((event) => event.reverses_event_id === original))
+    throw new Error("This penalty has already been undone.");
+  const player = players.find(
+    (item) => item.id === playerId && item.active !== false,
+  );
+  if (!player) throw new Error("This player is no longer active.");
+  if (Number(player.points_total) + delta < 0)
+    throw new Error("A correction cannot make the total negative.");
+  const event = {
+    id: crypto.randomUUID(),
+    event_number: Number(events[0]?.event_number || 0) + 1,
+    player_id: playerId,
+    points: delta,
+    reason,
+    previous_hash: events[0]?.event_hash || "GENESIS-LUDO-2026",
+    created_by: "demo-admin",
+    created_at: new Date().toISOString(),
+    event_type: kind,
+    request_id: requestId,
+    reverses_event_id: original,
+    published_reason: publicReason,
+  };
+  event.event_hash = await demoRecordHash(event);
+  player.points_total = Number(player.points_total) + delta;
+  saveDemo(players, [event, ...events]);
+  return event;
+}
+
+async function writeScore({
+  playerId = null,
+  points,
+  reason = "",
+  consent,
+  requestId,
+  publicReason = false,
+  kind,
+  original = null,
+}) {
+  if (!navigator.onLine)
+    throw new Error("You are offline. Reconnect and retry.");
+  if (!requestId || !consent)
+    throw new Error("Confirm the witnessed score before publishing.");
+  const delta = parsePoints(points, kind === "adjustment");
+  const note = cleanReason(reason);
+  if (!original && (!playerId || delta === null))
+    throw new Error("Choose a player and enter valid whole points.");
+  if (!original && ([...note].length < 3 || [...note].length > REASON_LIMIT))
+    throw new Error("A reason must contain 3 to 180 characters.");
+  if (!isSupabaseConfigured) {
+    const write = () =>
+      writeDemoEntry({
+        playerId,
+        delta,
+        reason: note,
+        requestId,
+        publicReason,
+        kind,
+        original,
+      });
+    const result = demoWrite.then(() =>
+      navigator.locks
+        ? navigator.locks.request("ludo-demo-ledger", write)
+        : write(),
+    );
+    demoWrite = result.catch(() => {});
+    return result;
+  }
+  const params = {
+    target: playerId,
+    delta,
+    note,
+    witnessed: consent,
+    request_key: requestId,
+    public_note: publicReason,
+    kind,
+    original,
+  };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { data, error, status } = await supabase
+      .rpc("write_scorebook_entry", params)
+      .abortSignal(AbortSignal.timeout(12000));
+    if (!error) return Array.isArray(data) ? data[0] : data;
+    if (attempt === 0 && ["40001", "40P01"].includes(error.code)) continue;
+    if ([401, 403].includes(status))
+      throw Object.assign(new Error("Sign in again to resume this score."), {
+        reauth: true,
+      });
+    if (!status || status >= 500 || error.code === "57014") {
+      throw Object.assign(
+        new Error(
+          "The league didn’t confirm this score. Retry with the same details.",
+        ),
+        { uncertain: true },
+      );
+    }
+    throw error;
+  }
+}
+
+export const addPoints = (values) => writeScore({ ...values, kind: "penalty" });
+export const adjustScore = (values) =>
+  writeScore({ ...values, kind: "adjustment" });
+export const undoPoints = (eventId, requestId) =>
+  writeScore({
+    requestId,
+    original: eventId,
+    consent: true,
+    kind: "adjustment",
+    publicReason: true,
   });
-  if (error) throw error;
-  return Array.isArray(data) ? data[0] : data;
+
+export async function verifyScoreChain() {
+  if (isSupabaseConfigured) {
+    const { data, error } = await supabase
+      .rpc("verify_scorebook_chain")
+      .abortSignal(AbortSignal.timeout(12000));
+    if (error) throw error;
+    return data;
+  }
+  const events = getDemoEvents().sort(
+    (a, b) => Number(a.event_number) - Number(b.event_number),
+  );
+  const result = {
+    valid: true,
+    signed: 0,
+    legacy: 0,
+    unsigned: 0,
+    first_invalid: null,
+  };
+  let previous;
+  for (const event of events) {
+    if (!event.request_id) {
+      if (event.event_hash?.length === 64) {
+        result.legacy++;
+        const digest = await sha256(
+          `${event.previous_hash}|${event.event_number}|${event.player_id}|${event.points}|${event.reason}|${event.created_at}`,
+        );
+        if (
+          digest !== event.event_hash ||
+          (previous && previous !== event.previous_hash)
+        )
+          result.first_invalid ??= event.event_number;
+        previous = event.event_hash;
+      } else {
+        result.unsigned++;
+        previous = undefined;
+      }
+      continue;
+    }
+    result.signed++;
+    if (
+      (previous && event.previous_hash !== previous) ||
+      (await demoRecordHash(event)) !== event.event_hash
+    )
+      result.first_invalid ??= event.event_number;
+    previous = event.event_hash;
+  }
+  result.signed += result.legacy;
+  result.valid = result.first_invalid === null;
+  return result;
 }
 
 export async function getAdminProfile(userId) {
