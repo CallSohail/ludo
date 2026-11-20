@@ -13,7 +13,7 @@ Player sheets open from the standings and player directory. They show the curren
 - Off-white #edf0ec, charcoal #151c19, soft gray #e1e6e3 and deep forest #273c30 form the fixed backdrop. Green carries actions and gold marks the crown.
 - Glass blurs at 20px with 1.4 saturation. Light panels use 64% white and dark panels use 10%. Buttons, form fields and plotted chart areas have solid backgrounds. Reduced transparency and unsupported blur use opaque surfaces.
 - System typography uses tight display tracking and tabular figures. Controls, cards and sheets use 12px, 20px and 28px radii, respectively.
-- A small dice icon identifies the league. Printed certificate artwork keeps its existing charcoal design.
+- A small dice icon identifies the league. The printed certificate has its own charcoal and forest treatment.
 
 ## Engineering constraints
 
@@ -33,7 +33,7 @@ Eight analytics tests, five production-configuration tests, and ten browser test
 
 A searchable roster sits beside the certificate preview, downloads, issued records and editing controls. Mobile stacks the bounded roster above the preview; a native full-size preview dialog supports Escape and keyboard focus. Accessible HTML repeats the entire certificate, message and approved comments.
 
-The redesigned certificate is charcoal #101512 with green #b3e77f, white #f0f3e9, muted #b1bfae and a restrained pink #e1b0c3. DM Sans carries centered Recognition and recipient typography. The first position adds a gold #dec18b crown emblem and stronger inset border. Missing-history data receives secondary emphasis. A QR, printed verification link and explicit issuance status sit in the footer. The preview remains charcoal in both website themes.
+The portrait edition pairs a forest-glass panel with centered DM Sans recognition typography. Original generated artwork supplies the dice and engraved glass. Player IDs select the existing portraits, with monograms when a portrait is unavailable. The first position adds a gold crown and frame. The layout keeps record verification in the footer and moves longer comments or commendations to attachment pages.
 
 The current #1 has a persistent site spotlight with reduced-motion support. Rank never means match wins. Ties and all-zero tables receive qualified wording; exact timestamp ties use ID order. Preview/export stay disabled until the exact model/message/page has finished rendering. Long comment collections and personal messages use attachment pages, preserving readable print sizes rather than silently clipping.
 

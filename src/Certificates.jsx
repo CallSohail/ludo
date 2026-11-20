@@ -1,3 +1,4 @@
+import { Avatar } from "./PlayerAvatar";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Award,
@@ -32,6 +33,18 @@ import {
   issueCertificate,
   verificationUrl,
 } from "./certificateService";
+function paintPreview(canvas, artwork) {
+  const width = Math.round(
+    canvas.getBoundingClientRect().width * window.devicePixelRatio,
+  );
+  if (width < 1) return;
+  canvas.width = Math.min(width, artwork.width);
+  canvas.height = Math.round((canvas.width * artwork.height) / artwork.width);
+  const context = canvas.getContext("2d");
+  context.imageSmoothingQuality = "high";
+  context.drawImage(artwork, 0, 0, canvas.width, canvas.height);
+}
+
 const DRAFT_KEY = "ludo-certificate-messages-v1";
 function readDrafts() {
   try {
@@ -116,6 +129,7 @@ export default function Certificates({
   const [busy, setBusy] = useState("");
   const [announcement, setAnnouncement] = useState("");
   const canvas = useRef(null);
+  const artwork = useRef(null);
   const fullPreview = useRef(null);
   const [fullPreviewSrc, setFullPreviewSrc] = useState("");
   const job = useRef(0);
@@ -231,6 +245,16 @@ export default function Certificates({
     }
   };
   const readyForModel = ready && renderedKey === renderKey;
+  useEffect(() => {
+    const element = canvas.current;
+    if (!element || !readyForModel) return;
+    const observer = new ResizeObserver(() => {
+      if (artwork.current) paintPreview(element, artwork.current);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [readyForModel]);
+
   const visible = players.filter((p) =>
     p.name.toLocaleLowerCase().includes(query.toLocaleLowerCase().trim()),
   );
@@ -247,9 +271,8 @@ export default function Certificates({
         const count = await certificatePageCount(model, message);
         if (request === job.current) setPageCount(count);
         if (request !== job.current || !canvas.current) return;
-        canvas.current.width = buffer.width;
-        canvas.current.height = buffer.height;
-        canvas.current.getContext("2d").drawImage(buffer, 0, 0);
+        paintPreview(canvas.current, buffer);
+        artwork.current = buffer;
         setRenderedKey(renderKey);
         setReady(true);
       } catch (error) {
@@ -285,11 +308,14 @@ export default function Certificates({
     setDownloadError("");
     setAnnouncement("");
     try {
-      const snapshot = document.createElement("canvas");
-      snapshot.width = canvas.current.width;
-      snapshot.height = canvas.current.height;
-      snapshot.getContext("2d").drawImage(canvas.current, 0, 0);
-      await renderCertificate(snapshot, model, message, 0);
+      const snapshot =
+        pageIndex === 0
+          ? artwork.current
+          : await renderCertificate(
+              document.createElement("canvas"),
+              model,
+              message,
+            );
       const result =
         type === "pdf"
           ? {
@@ -377,7 +403,8 @@ export default function Certificates({
                       String(rank).padStart(2, "0")
                     )}
                   </span>
-                  <span>
+                  <Avatar player={p} size="certificate-roster-avatar" />
+                  <span className="certificate-recipient">
                     <strong>{p.name}</strong>
                     <small>
                       {rank === 1
@@ -412,11 +439,21 @@ export default function Certificates({
       <div className="certificate-detail">
         <section className="dash-panel certificate-preview-panel">
           <div className="dash-panel-head">
-            <div>
-              <h2>{model.leader ? "The crown edition" : model.title}</h2>
-              <p>
-                {model.name} · position {model.rank} of {model.total}
-              </p>
+            <div className="certificate-preview-identity">
+              <Avatar
+                player={{
+                  id: model.playerId,
+                  name: model.name,
+                  accent: player?.accent,
+                }}
+                size="certificate-preview-avatar"
+              />
+              <div>
+                <h2>{model.leader ? "The crown edition" : model.title}</h2>
+                <p>
+                  {model.name} · position {model.rank} of {model.total}
+                </p>
+              </div>
             </div>
             <span className="certificate-edition">
               {model.leader ? <Crown size={15} /> : <Award size={15} />}Évry
@@ -452,7 +489,7 @@ export default function Certificates({
               className="dash-button"
               disabled={!readyForModel}
               onClick={() => {
-                setFullPreviewSrc(canvas.current.toDataURL("image/png"));
+                setFullPreviewSrc(artwork.current.toDataURL("image/png"));
                 fullPreview.current.showModal();
               }}
             >

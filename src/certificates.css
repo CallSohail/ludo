@@ -120,7 +120,7 @@
 .certificate-player.crown-player > span:first-child {
   color: var(--chart-gold);
 }
-.certificate-player > span:nth-child(2) {
+.certificate-recipient {
   flex: 1;
   min-width: 0;
 }
@@ -673,4 +673,34 @@
 .certificate-issued-list p {
   font-size: 14px;
   color: var(--muted);
+}
+
+.certificate-roster-avatar.dash-avatar {
+  width: 29px;
+  height: 29px;
+  font-size: 11px;
+}
+.certificate-preview-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.certificate-preview-identity > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.certificate-preview-avatar.dash-avatar {
+  width: 42px;
+  height: 42px;
+  box-shadow: 0 0 0 1px var(--line);
+}
+@media (max-width: 550px) {
+  .certificate-roster-avatar.dash-avatar {
+    display: none;
+  }
+  .certificate-preview-avatar.dash-avatar {
+    width: 36px;
+    height: 36px;
+  }
 }

@@ -160,3 +160,82 @@ test("every listed player finishes rendering and stale links cannot export anoth
     page.getByRole("button", { name: "Download PDF", exact: true }),
   ).toBeEnabled();
 });
+
+test("certificate renders the portrait for a renamed player ID and uses a monogram when a name is reused", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "ludo-super-league:players",
+      JSON.stringify([
+        {
+          id: "demo-mubeen",
+          name: "Mubeen A.",
+          points_total: 32,
+          active: true,
+          created_at: "2026-01-01",
+        },
+        {
+          id: "new-player",
+          name: "Mubeen",
+          points_total: 12,
+          active: true,
+          created_at: "2026-02-01",
+        },
+      ]),
+    );
+  });
+  await open(page);
+  const portrait = page.locator(".certificate-preview-avatar img");
+  await expect(portrait).toHaveAttribute("src", /mubeen-avatar\.webp$/);
+  await page.getByRole("button", { name: "Open full-size preview" }).click();
+  const artworkMatches = await page
+    .getByRole("dialog")
+    .getByRole("img")
+    .evaluate(async (artwork) => {
+      await artwork.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = artwork.naturalWidth;
+      canvas.height = artwork.naturalHeight;
+      canvas.getContext("2d").drawImage(artwork, 0, 0);
+      const image = document.querySelector(".certificate-preview-avatar img");
+      await image.decode();
+      const reference = document.createElement("canvas");
+      reference.width = reference.height = 660;
+      const expected = reference.getContext("2d");
+      expected.drawImage(image, 0, 0, 660, 660);
+      const actual = canvas.getContext("2d");
+      return [
+        [200, 210],
+        [300, 330],
+        [430, 470],
+      ].every(([x, y]) => {
+        const a = actual.getImageData(310 + x, 628 + y, 1, 1).data;
+        const b = expected.getImageData(x, y, 1, 1).data;
+        return a.every((value, channel) => Math.abs(value - b[channel]) < 12);
+      });
+    });
+  expect(artworkMatches).toBe(true);
+  await page.keyboard.press("Escape");
+
+  await page.locator(".certificate-player").nth(1).click();
+  await expect(
+    page.getByRole("button", { name: "Download PDF", exact: true }),
+  ).toBeEnabled();
+  await expect(portrait).toHaveCount(0);
+  await expect(page.locator(".certificate-preview-avatar")).toHaveText("M");
+});
+
+test("missing portrait and glass artwork fall back to a downloadable certificate", async ({
+  page,
+}) => {
+  await page.route("**/saboor-avatar.webp", (route) => route.abort());
+  await page.route("**/certificate-glass-panel.webp", (route) => route.abort());
+  await open(page);
+  await expect(page.locator(".certificate-preview-avatar")).toHaveText("S");
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Download PNG", exact: true }).click(),
+  ]);
+  expect(download.suggestedFilename()).toBe("ludo-2026-01-saboor.png");
+});
